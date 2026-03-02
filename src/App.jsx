@@ -12,13 +12,12 @@ import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc, getDoc } 
 
 // =====================================================================
 const firebaseConfig = {
-  apiKey: "AIzaSyDa0FbhmWyrL5KUGcShz3O1yv0WLj_sVZc",
-  authDomain: "sotaykhasinh.firebaseapp.com",
-  projectId: "sotaykhasinh",
-  storageBucket: "sotaykhasinh.firebasestorage.app",
-  messagingSenderId: "768096185567",
-  appId: "1:768096185567:web:eeaad2bdce029723420d6a",
-  measurementId: "G-MY3ZVTW9H2"
+  apiKey: "ĐIỀN_VÀO_ĐÂY",
+  authDomain: "ĐIỀN_VÀO_ĐÂY",
+  projectId: "ĐIỀN_VÀO_ĐÂY",
+  storageBucket: "ĐIỀN_VÀO_ĐÂY",
+  messagingSenderId: "ĐIỀN_VÀO_ĐÂY",
+  appId: "ĐIỀN_VÀO_ĐÂY"
 };
 // =====================================================================
 
@@ -52,7 +51,6 @@ const INITIAL_DOCS = [
   { id: 'd1', categoryId: 'cat1', title: 'Tài liệu Nút Dây Cơ Bản', description: 'Hướng dẫn các nút dây cơ bản ngành Kha (Nút ghế đơn, nút dẹt...)', link: 'https://vi.wikipedia.org/wiki/N%C3%BAt_d%C3%A2y' },
 ];
 
-// --- DỮ LIỆU CỐ ĐỊNH (Không đổi) ---
 const RANKS = [
   { id: 'r1', name: 'Tân Kha', logo: 'https://placehold.co/100x100/3b82f6/white?text=TK', criteria: ['Luật - Lời Hứa - Châm ngôn', 'Hiểu biết phong trào', 'Trình diện và Chào', 'Khéo tay tháo vát', 'Dấu đường', 'Sức khỏe (Đi bộ 10km/5km)', 'Ca hát'] },
   { id: 'r2', name: 'Dự Kha', logo: 'https://placehold.co/100x100/3b82f6/white?text=DK', criteria: ['Hiểu biết phong trào (nâng cao)', 'Ca hát (10 bài)', 'Vệ sinh sức khỏe', 'Cứu thương', 'Quan sát', 'Đời sống trại', 'Truyền tin', 'Phương hướng', 'Công dân trách nhiệm'] },
@@ -88,7 +86,6 @@ const CATEGORIES = [
 const getSkillLogo = (skillName) => `https://placehold.co/100x100/f8fafc/64748b?text=${encodeURIComponent(skillName.substring(0, 3))}`;
 const STATUS = { UNREGISTERED: 'unregistered', IN_PROGRESS: 'in_progress', COMPLETED: 'completed' };
 
-// --- COMPONENT CHÍNH ---
 export default function App() {
   const [loading, setLoading] = useState(true);
   const [authUser, setAuthUser] = useState(null);
@@ -111,37 +108,29 @@ export default function App() {
   // States Modals Thêm mới
   const [showAddTuanModal, setShowAddTuanModal] = useState(false);
   const [newTuan, setNewTuan] = useState({ name: '', logo: '' });
-  
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [newUser, setNewUser] = useState({ name: '', tuanId: '', dob: '', avatar: '' });
-  
   const [showAddLawModal, setShowAddLawModal] = useState(false);
   const [newLaw, setNewLaw] = useState({ category: 'Lời Hứa', content: '' });
-  
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
   const [newCategory, setNewCategory] = useState({ name: '', avatar: '' });
-  
   const [showAddDocModal, setShowAddDocModal] = useState(false);
   const [newDoc, setNewDoc] = useState({ title: '', description: '', link: '', categoryId: '' });
 
-  // States Modals Chỉnh sửa
+  // States Modals Chỉnh sửa & Ảnh Bìa
   const [editingTuan, setEditingTuan] = useState(null);
   const [editingUser, setEditingUser] = useState(null);
+  const [showEditCoverModal, setShowEditCoverModal] = useState(false);
+  const [coverForm, setCoverForm] = useState({ type: 'image', url: '' });
 
   // 1. Khởi tạo Auth
   useEffect(() => {
     const initAuth = async () => {
-      try {
-        await signInAnonymously(auth);
-      } catch (err) {
-        console.error("Auth Error:", err);
-      }
+      try { await signInAnonymously(auth); } 
+      catch (err) { console.error("Auth Error:", err); }
     };
     initAuth();
-
-    const unsubscribe = onAuthStateChanged(auth, user => {
-      setAuthUser(user);
-    });
+    const unsubscribe = onAuthStateChanged(auth, user => setAuthUser(user));
     return () => unsubscribe();
   }, []);
 
@@ -226,7 +215,40 @@ export default function App() {
 
   const handleSelectUser = (user) => { setCurrentUser(user); setCurrentView('profile'); window.scrollTo(0, 0); };
 
-  // TUẦN
+  // --- ẢNH BÌA ---
+  const handleUpdateCover = async (e) => {
+    e.preventDefault();
+    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'customLogos', 'main_cover'), coverForm);
+    setShowEditCoverModal(false);
+  };
+
+  const renderCoverMedia = () => {
+    const coverData = customLogos['main_cover'];
+    if (!coverData || !coverData.url) {
+      return <img src="https://placehold.co/1200x400/94a3b8/ffffff?text=Anh+Bia+Kha+Doan" alt="Cover" className="absolute inset-0 w-full h-full object-cover" />;
+    }
+    if (coverData.type === 'video') {
+      const ytMatch = coverData.url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
+      if (ytMatch) {
+        return (
+          <div className="absolute inset-0 overflow-hidden pointer-events-none bg-black">
+            <iframe 
+              className="absolute top-1/2 left-1/2 w-[300%] sm:w-[150%] h-[300%] sm:h-[150%] max-w-none -translate-x-1/2 -translate-y-1/2 pointer-events-none" 
+              src={`https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&mute=1&loop=1&playlist=${ytMatch[1]}&controls=0&showinfo=0&rel=0`} 
+              title="Cover Video" 
+              frameBorder="0" 
+              allow="autoplay; encrypted-media" 
+              allowFullScreen>
+            </iframe>
+          </div>
+        );
+      }
+      return <video src={coverData.url} autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover pointer-events-none"></video>;
+    }
+    return <img src={coverData.url} alt="Cover" className="absolute inset-0 w-full h-full object-cover" />;
+  };
+
+  // --- TUẦN ---
   const handleAddTuan = async (e) => {
     e.preventDefault(); if (!newTuan.name.trim()) return;
     const id = 't' + Date.now();
@@ -250,7 +272,7 @@ export default function App() {
     if (window.confirm(`Bạn có chắc muốn xóa ${tuanName}?`)) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tuans', tuanId));
   };
 
-  // KHA SINH
+  // --- KHA SINH ---
   const handleAddUser = async (e) => {
     e.preventDefault(); if (!newUser.name.trim() || tuans.length === 0) return;
     const id = 'k' + Date.now(); const defaultTuanId = newUser.tuanId || tuans[0].id;
@@ -287,7 +309,7 @@ export default function App() {
     }
   };
 
-  // LUẬT LỜI HỨA
+  // --- LUẬT LỜI HỨA ---
   const handleAddLaw = async (e) => {
     e.preventDefault(); if (!newLaw.content.trim()) return;
     const id = 'l' + Date.now();
@@ -299,7 +321,7 @@ export default function App() {
     if (window.confirm('Bạn có muốn xóa nội dung này?')) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'laws', lawId));
   };
 
-  // TÀI LIỆU
+  // --- TÀI LIỆU ---
   const handleAddCategory = async (e) => {
     e.preventDefault(); if (!newCategory.name.trim()) return;
     const id = 'cat' + Date.now();
@@ -324,7 +346,7 @@ export default function App() {
     if (window.confirm(`Bạn có chắc muốn xóa tài liệu "${docTitle}"?`)) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'documents', docId));
   };
 
-  // TIẾN TRÌNH RÈN LUYỆN
+  // --- TIẾN TRÌNH RÈN LUYỆN ---
   const updateBadge = async (skillName, status) => {
     if (!currentUser) return;
     const currentProg = progressData[currentUser.id] || { badges: {}, ranks: {}, info: { currentRank: currentUser.currentRank } };
@@ -371,7 +393,10 @@ export default function App() {
     return Object.keys(userBadges).filter(skill => userBadges[skill] === STATUS.COMPLETED);
   };
 
+
+  // ==========================================
   // --- GIAO DIỆN CHÍNH ---
+  // ==========================================
 
   if (loading) {
     return (
@@ -382,32 +407,57 @@ export default function App() {
     );
   }
 
-  // --- MÀN HÌNH DASHBOARD (TRANG CHỦ) ---
+  // ==========================================
+  // MÀN HÌNH DASHBOARD (TRANG CHỦ)
+  // ==========================================
   if (!currentUser) {
     const filteredUsers = users.filter(u => u.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
     return (
       <div className="min-h-screen bg-slate-100 flex flex-col items-center p-4 sm:p-6 font-sans">
-        <div className="w-full max-w-2xl mt-8 mb-8 text-center">
-          <div className="relative group inline-block mb-4">
-            <div className="w-24 h-24 rounded-full bg-red-800 flex items-center justify-center text-white shadow-lg overflow-hidden border-4 border-white">
-              {customLogos['main_logo']?.logo ? (
-                <img src={customLogos['main_logo'].logo} alt="Logo Kha Đoàn" className="w-full h-full object-cover bg-white" />
-              ) : (
-                <ShieldCheck size={48} />
-              )}
+        <div className="w-full max-w-3xl flex flex-col items-center mt-2 sm:mt-8 mb-8">
+          
+          {/* KHU VỰC ẢNH/VIDEO BÌA VÀ LOGO */}
+          <div className="relative w-full h-48 sm:h-64 md:h-80 rounded-3xl shadow-lg mb-16 bg-slate-200">
+            <div className="w-full h-full rounded-3xl overflow-hidden relative">
+              {renderCoverMedia()}
             </div>
+            
             {isAdmin && (
-              <label className="absolute inset-0 bg-black/60 hidden group-hover:flex items-center justify-center cursor-pointer rounded-full text-white transition-all backdrop-blur-sm" title="Đổi Logo Kha Đoàn">
-                <Upload size={24} />
-                <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, (base64) => handleCustomLogoUpload('main_logo', base64))} />
-              </label>
+              <button onClick={() => { 
+                const existingCover = customLogos['main_cover'] || { type: 'image', url: '' };
+                setCoverForm(existingCover); 
+                setShowEditCoverModal(true); 
+              }} className="absolute top-4 right-4 z-20 bg-black/60 hover:bg-black/80 text-white p-2 rounded-xl backdrop-blur-sm transition-all shadow-md" title="Đổi Ảnh/Video Bìa">
+                <Edit3 size={20} />
+              </button>
             )}
+
+            <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 z-30">
+              <div className="relative group">
+                <div className="w-24 h-24 rounded-full bg-red-800 flex items-center justify-center text-white shadow-xl overflow-hidden border-4 border-slate-100">
+                  {customLogos['main_logo']?.logo ? (
+                    <img src={customLogos['main_logo'].logo} alt="Logo Kha Đoàn" className="w-full h-full object-cover bg-white" />
+                  ) : (
+                    <ShieldCheck size={48} />
+                  )}
+                </div>
+                {isAdmin && (
+                  <label className="absolute inset-0 bg-black/60 hidden group-hover:flex items-center justify-center cursor-pointer rounded-full text-white transition-all backdrop-blur-sm" title="Đổi Logo Kha Đoàn">
+                    <Upload size={24} />
+                    <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, (base64) => handleCustomLogoUpload('main_logo', base64))} />
+                  </label>
+                )}
+              </div>
+            </div>
           </div>
-          <h1 className="text-3xl font-bold text-slate-800 mb-2">Sổ Tay Kha Sinh</h1>
-          <p className="text-slate-600 font-medium uppercase tracking-widest text-sm leading-relaxed">
-            Kha Đoàn Bắc Đẩu - Liên Đoàn Hội An<br />Đạo Quảng Nam - Châu Liên Quảng
-          </p>
+
+          <div className="text-center">
+            <h1 className="text-3xl font-bold text-slate-800 mb-2">Sổ Tay Kha Sinh</h1>
+            <p className="text-slate-600 font-medium uppercase tracking-widest text-sm leading-relaxed">
+              Kha Đoàn Bắc Đẩu - Liên Đoàn Hội An<br />Đạo Quảng Nam - Châu Liên Quảng
+            </p>
+          </div>
 
           {isAdmin ? (
             <div className="mt-6 flex flex-col items-center space-y-3">
@@ -444,6 +494,51 @@ export default function App() {
                 <div className="flex space-x-3">
                   <button type="button" onClick={() => setShowAdminLogin(false)} className="flex-1 px-4 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200">Hủy</button>
                   <button type="submit" className="flex-1 px-4 py-3 bg-red-800 text-white rounded-xl font-bold hover:bg-red-900 shadow-md">Vào</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL: SỬA ẢNH/VIDEO BÌA */}
+        {showEditCoverModal && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
+            <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl my-8">
+              <h3 className="text-xl font-bold mb-4 text-slate-800">Cập Nhật Ảnh/Video Bìa</h3>
+              <form onSubmit={handleUpdateCover} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Định dạng bìa</label>
+                  <select className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-800 outline-none" value={coverForm.type} onChange={e => setCoverForm({...coverForm, type: e.target.value, url: ''})}>
+                    <option value="image">Ảnh Bìa tĩnh</option>
+                    <option value="video">Video Bìa (Nền động)</option>
+                  </select>
+                </div>
+                
+                {coverForm.type === 'image' ? (
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Tải ảnh lên hoặc dùng link</label>
+                    <div className="flex flex-col space-y-2">
+                      <div className="flex items-center space-x-3">
+                        <label className="cursor-pointer bg-slate-100 text-slate-700 px-4 py-2 rounded-xl text-sm font-bold hover:bg-slate-200 border border-slate-300 flex items-center">
+                          <Upload size={16} className="mr-2" /> Chọn ảnh
+                          <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, (base64) => setCoverForm({...coverForm, url: base64}))} />
+                        </label>
+                        <span className="text-xs text-slate-500">Tối ưu dung lượng</span>
+                      </div>
+                      <input type="text" placeholder="Hoặc dán link ảnh (https://...)" className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-800 outline-none text-sm" value={coverForm.url} onChange={e => setCoverForm({...coverForm, url: e.target.value})} />
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Link Video (YouTube hoặc MP4)</label>
+                    <input type="text" required placeholder="VD: https://www.youtube.com/watch?v=..." className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-800 outline-none text-sm" value={coverForm.url} onChange={e => setCoverForm({...coverForm, url: e.target.value})} />
+                    <p className="text-xs text-slate-500 mt-2">Gợi ý: Copy đường dẫn từ Youtube dán vào đây. Hệ thống sẽ tự động phát ngầm làm video nền chuyên nghiệp (Không có tiếng).</p>
+                  </div>
+                )}
+                
+                <div className="flex space-x-3 pt-4">
+                  <button type="button" onClick={() => setShowEditCoverModal(false)} className="flex-1 px-4 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200">Hủy</button>
+                  <button type="submit" className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-md">Lưu Thay Đổi</button>
                 </div>
               </form>
             </div>
@@ -565,7 +660,7 @@ export default function App() {
           </div>
         )}
 
-        {/* --- KHU VỰC HIỂN THỊ DANH SÁCH THEO TUẦN --- */}
+        {/* --- DANH SÁCH THEO TUẦN --- */}
         <div className="w-full max-w-2xl bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden">
           <div className="p-6 border-b border-slate-100 bg-slate-50">
             <div className="relative">
@@ -632,58 +727,15 @@ export default function App() {
             )}
           </div>
         </div>
-
-        {/* MODAL: SỬA ẢNH/VIDEO BÌA */}
-        {showEditCoverModal && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
-            <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl my-8">
-              <h3 className="text-xl font-bold mb-4 text-slate-800">Cập Nhật Ảnh/Video Bìa</h3>
-              <form onSubmit={handleUpdateCover} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Định dạng bìa</label>
-                  <select className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-800 outline-none" value={coverForm.type} onChange={e => setCoverForm({...coverForm, type: e.target.value, url: ''})}>
-                    <option value="image">Ảnh Bìa tĩnh</option>
-                    <option value="video">Video Bìa (Nền động)</option>
-                  </select>
-                </div>
-                
-                {coverForm.type === 'image' ? (
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Tải ảnh lên hoặc dùng link</label>
-                    <div className="flex flex-col space-y-2">
-                      <div className="flex items-center space-x-3">
-                        <label className="cursor-pointer bg-slate-100 text-slate-700 px-4 py-2 rounded-xl text-sm font-bold hover:bg-slate-200 border border-slate-300 flex items-center">
-                          <Upload size={16} className="mr-2" /> Chọn ảnh
-                          <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, (base64) => setCoverForm({...coverForm, url: base64}))} />
-                        </label>
-                        <span className="text-xs text-slate-500">Tối ưu dung lượng</span>
-                      </div>
-                      <input type="text" placeholder="Hoặc dán link ảnh (https://...)" className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-800 outline-none text-sm" value={coverForm.url} onChange={e => setCoverForm({...coverForm, url: e.target.value})} />
-                    </div>
-                  </div>
-                ) : (
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Link Video (YouTube hoặc MP4)</label>
-                    <input type="text" required placeholder="VD: https://www.youtube.com/watch?v=..." className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-800 outline-none text-sm" value={coverForm.url} onChange={e => setCoverForm({...coverForm, url: e.target.value})} />
-                    <p className="text-xs text-slate-500 mt-2">Gợi ý: Copy đường dẫn từ Youtube dán vào đây. Hệ thống sẽ tự động phát ngầm làm video nền chuyên nghiệp (Không có tiếng).</p>
-                  </div>
-                )}
-                
-                <div className="flex space-x-3 pt-4">
-                  <button type="button" onClick={() => setShowEditCoverModal(false)} className="flex-1 px-4 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200">Hủy</button>
-                  <button type="submit" className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-md">Lưu Thay Đổi</button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
       </div>
     );
   }
 
-  // --- MÀN HÌNH BÊN TRONG HỒ SƠ KHA SINH ---
+  // ==========================================
+  // MÀN HÌNH BÊN TRONG HỒ SƠ KHA SINH
+  // ==========================================
   const userData = progressData[currentUser.id] || { badges: {}, ranks: {}, info: { currentRank: currentUser.currentRank } };
-  const activeRank = userData.info?.currentRank || currentUser.currentRank;
+  const activeRank = userData.info?.currentRank || currentUser.currentRank || 'Tân Kha';
   const currentTuan = tuans.find(t => t.id === currentUser.tuanId);
 
   const earnedCats = getEarnedCategories(currentUser.id);
@@ -775,8 +827,10 @@ export default function App() {
                   <div className="text-xl font-bold text-red-800 flex items-center">
                     {(() => {
                       const currentRankData = RANKS.find(r => r.name === activeRank);
-                      return currentRankData?.logo ? (
-                        <img src={customLogos[currentRankData.id]?.logo || currentRankData.logo} alt={activeRank} className="w-8 h-8 mr-3 object-contain drop-shadow-sm bg-white rounded-full" />
+                      const rankLogo = currentRankData ? (customLogos[currentRankData.id]?.logo || currentRankData.logo) : null;
+                      
+                      return rankLogo ? (
+                        <img src={rankLogo} alt={activeRank} className="w-8 h-8 mr-3 object-contain drop-shadow-sm bg-white rounded-full" />
                       ) : (
                         <Medal size={24} className="mr-2" /> 
                       );
