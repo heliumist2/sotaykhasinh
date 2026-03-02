@@ -224,7 +224,8 @@ export default function App() {
         canvas.width = width; canvas.height = height;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, width, height);
-        callback(canvas.toDataURL('image/jpeg', 0.8));
+        // Tối ưu dung lượng: Ảnh nền lớn sẽ bị nén mạnh hơn (0.5) để lưu được nhiều ảnh, ảnh nhỏ giữ chất lượng cao (0.8)
+        callback(canvas.toDataURL('image/jpeg', customMaxSize > 800 ? 0.5 : 0.8));
       };
       img.src = event.target.result;
     };
@@ -242,6 +243,10 @@ export default function App() {
 
   const handleAddSlide = async (base64) => {
     const currentSlides = customLogos['bg_slides']?.images || [];
+    if (currentSlides.length >= 10) {
+      alert("Đã đạt giới hạn tối đa 10 ảnh! Trưởng vui lòng xóa bớt ảnh cũ trước khi thêm mới.");
+      return;
+    }
     await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'customLogos', 'bg_slides'), {
       images: [...currentSlides, base64]
     });
@@ -259,15 +264,16 @@ export default function App() {
   const renderCoverMedia = () => {
     const coverData = customLogos['main_cover'];
     if (!coverData || !coverData.url) {
-      return <img src="https://placehold.co/1200x400/94a3b8/ffffff?text=Anh+Bia+Kha+Doan" alt="Cover" className="absolute inset-0 w-full h-full object-cover" />;
+      // Đổi placeholder mặc định sang tỷ lệ 16:9 (1200x675)
+      return <img src="https://placehold.co/1200x675/94a3b8/ffffff?text=Anh+Bia+Kha+Doan" alt="Cover" className="absolute inset-0 w-full h-full object-cover" />;
     }
     if (coverData.type === 'video') {
       const ytMatch = coverData.url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
       if (ytMatch) {
         return (
-          <div className="absolute inset-0 overflow-hidden pointer-events-none bg-black flex items-center justify-center">
+          <div className="absolute inset-0 overflow-hidden pointer-events-none bg-black">
             <iframe 
-              className="absolute inset-0 w-full h-full pointer-events-none" 
+              className="w-full h-full pointer-events-none" 
               src={`https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&mute=1&loop=1&playlist=${ytMatch[1]}&controls=0&showinfo=0&rel=0`} 
               title="Cover Video" 
               frameBorder="0" 
@@ -462,8 +468,8 @@ export default function App() {
                 />
              ))
           )}
-          {/* Lớp mủ đen để làm nổi bật nội dung phía trên */}
-          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-[2px]"></div>
+          {/* Lớp phủ đen mỏng để làm nổi bật chữ trắng, đã loại bỏ hiệu ứng blur làm mờ ảnh */}
+          <div className="absolute inset-0 bg-slate-900/30"></div>
         </div>
 
         {/* NỘI DUNG CHÍNH (NỔI LÊN TRÊN NỀN) */}
@@ -489,12 +495,12 @@ export default function App() {
 
             {/* KHU VỰC ẢNH/VIDEO BÌA (Tùy chọn nằm trong khung trắng) */}
             {(customLogos['main_cover']?.url || isAdmin) && (
-              <div className="relative w-full h-40 sm:h-56 rounded-3xl shadow-inner mb-12 bg-slate-200 overflow-hidden">
+              <div className="relative w-full aspect-video rounded-3xl shadow-inner mb-12 bg-slate-200 overflow-hidden">
                 {renderCoverMedia()}
               </div>
             )}
 
-            <div className={`relative group inline-block mb-4 ${customLogos['main_cover']?.url || isAdmin ? '-mt-24' : ''}`}>
+            <div className={`relative group inline-block mb-4 ${customLogos['main_cover']?.url || isAdmin ? '-mt-20 sm:-mt-24' : ''}`}>
               <div className="w-28 h-28 rounded-full bg-red-800 flex items-center justify-center text-white shadow-xl overflow-hidden border-4 border-white">
                 {customLogos['main_logo']?.logo ? (
                   <img src={customLogos['main_logo'].logo} alt="Logo Kha Đoàn" className="w-full h-full object-cover bg-white" />
@@ -629,16 +635,16 @@ export default function App() {
                   <label className="flex items-center justify-center w-full p-6 border-2 border-dashed border-red-300 rounded-2xl bg-red-50 hover:bg-red-100 cursor-pointer transition-colors group">
                     <div className="text-center">
                       <Upload size={32} className="mx-auto text-red-500 mb-2 group-hover:scale-110 transition-transform" />
-                      <p className="font-bold text-red-800">Bấm vào đây để tải ảnh nền mới lên</p>
-                      <p className="text-xs text-red-600 mt-1">Ảnh sẽ tự chạy slide phía sau màn hình chính. (Hỗ trợ chất lượng cao HD)</p>
+                      <p className="font-bold text-red-800">Bấm vào đây để tải ảnh nền mới lên (Tối đa 10 ảnh)</p>
+                      <p className="text-xs text-red-600 mt-1">Ảnh sẽ tự chạy slide phía sau màn hình chính. Đã được tự động nén để tối ưu.</p>
                     </div>
-                    {/* Dùng maxSize = 1600 để ảnh nền nét hơn */}
-                    <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, handleAddSlide, 1600)} />
+                    {/* Dùng maxSize = 1024 để đảm bảo dung lượng mười ảnh gộp lại không vượt quá 1MB của Database */}
+                    <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, handleAddSlide, 1024)} />
                   </label>
                 </div>
 
                 <div>
-                  <h4 className="font-bold text-slate-700 mb-3">Các ảnh nền hiện tại ({bgSlides.length} ảnh):</h4>
+                  <h4 className="font-bold text-slate-700 mb-3">Các ảnh nền hiện tại ({bgSlides.length}/10 ảnh):</h4>
                   {bgSlides.length === 0 ? (
                     <p className="text-sm text-slate-500 italic bg-slate-50 p-4 rounded-xl border border-slate-200">Hệ thống đang dùng màu nền mặc định.</p>
                   ) : (
