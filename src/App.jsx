@@ -378,6 +378,10 @@ export default function App() {
     if (window.confirm(`Bạn có chắc muốn xóa danh mục "${categoryName}"?`)) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'docCategories', categoryId));
   };
 
+  const handleUpdateCategoryAvatar = async (categoryId, base64) => {
+    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'docCategories', categoryId), { avatar: base64 }, { merge: true });
+  };
+
   const handleAddDoc = async (e) => {
     e.preventDefault(); if (!newDoc.title.trim()) return;
     const id = 'd' + Date.now(); const categoryId = newDoc.categoryId || (docCategories.length > 0 ? docCategories[0].id : '');
@@ -1364,11 +1368,19 @@ export default function App() {
                     <div key={cat.id} className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
                       <div className="p-5 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
                         <div className="flex items-center space-x-4">
-                          <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-sm overflow-hidden p-0.5 border border-slate-200 shrink-0">
-                            {cat.avatar ? (
-                              <img src={cat.avatar} alt={cat.name} className="w-full h-full object-cover rounded-full" />
-                            ) : (
-                              <div className="p-2 rounded-full bg-slate-200 text-slate-500"><BookOpen size={20} /></div>
+                          <div className="relative group shrink-0">
+                            <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-sm overflow-hidden p-0.5 border border-slate-200">
+                              {cat.avatar ? (
+                                <img src={cat.avatar} alt={cat.name} className="w-full h-full object-cover rounded-full" />
+                              ) : (
+                                <div className="p-2 rounded-full bg-slate-200 text-slate-500"><BookOpen size={20} /></div>
+                              )}
+                            </div>
+                            {isAdmin && (
+                              <label className="absolute inset-0 bg-black/60 hidden group-hover:flex items-center justify-center cursor-pointer rounded-full text-white transition-all backdrop-blur-sm" title="Đổi Ảnh Danh Mục">
+                                <Upload size={16} />
+                                <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, (base64) => handleUpdateCategoryAvatar(cat.id, base64))} />
+                              </label>
                             )}
                           </div>
                           <div>
