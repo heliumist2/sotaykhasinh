@@ -12,12 +12,12 @@ import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc, getDoc } 
 
 // =====================================================================
 const firebaseConfig = {
-  apiKey: "ĐIỀN_VÀO_ĐÂY",
-  authDomain: "ĐIỀN_VÀO_ĐÂY",
-  projectId: "ĐIỀN_VÀO_ĐÂY",
-  storageBucket: "ĐIỀN_VÀO_ĐÂY",
-  messagingSenderId: "ĐIỀN_VÀO_ĐÂY",
-  appId: "ĐIỀN_VÀO_ĐÂY"
+  apiKey: "AIzaSyDa0FbhmWyrL5KUGcShz3O1yv0WLj_sVZc",
+  authDomain: "sotaykhasinh.firebaseapp.com",
+  projectId: "sotaykhasinh",
+  storageBucket: "sotaykhasinh.firebasestorage.app",
+  messagingSenderId: "768096185567",
+  appId: "1:768096185567:web:eeaad2bdce029723420d6a"
 };
 // =====================================================================
 
@@ -1417,3 +1417,4 @@ export default function App() {
     </div>
   );
 }
+
