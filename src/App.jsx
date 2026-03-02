@@ -3,7 +3,7 @@ import {
   User, Award, CheckCircle2, Circle, Clock, LogOut, Search,
   ChevronRight, ShieldCheck, Lock, Unlock, ArrowLeft, 
   Calendar, Medal, Star, Target, BookOpen, FileText, Plus, 
-  Link as LinkIcon, Upload, Trash2, Edit3, Loader2, HeartHandshake
+  Link as LinkIcon, Upload, Trash2, Edit3, Loader2, HeartHandshake, Image as ImageIcon
 } from 'lucide-react';
 
 import { initializeApp } from 'firebase/app';
@@ -117,11 +117,13 @@ export default function App() {
   const [showAddDocModal, setShowAddDocModal] = useState(false);
   const [newDoc, setNewDoc] = useState({ title: '', description: '', link: '', categoryId: '' });
 
-  // States Modals Chỉnh sửa & Ảnh Bìa
+  // States Modals Chỉnh sửa & Ảnh Bìa & Slide
   const [editingTuan, setEditingTuan] = useState(null);
   const [editingUser, setEditingUser] = useState(null);
   const [showEditCoverModal, setShowEditCoverModal] = useState(false);
   const [coverForm, setCoverForm] = useState({ type: 'image', url: '' });
+  const [showSlideModal, setShowSlideModal] = useState(false);
+  const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
 
   // 1. Khởi tạo Auth
   useEffect(() => {
@@ -171,6 +173,10 @@ export default function App() {
           INITIAL_DOC_CATEGORIES.forEach(c => setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'docCategories', c.id), c));
           INITIAL_DOCS.forEach(d => setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'documents', d.id), d));
           MOCK_USERS.forEach(u => setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'progressData', u.id), { badges: {}, ranks: {}, info: { currentRank: u.currentRank } }));
+          // Default slides
+          await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'customLogos', 'bg_slides'), { 
+            images: ['https://placehold.co/1920x1080/1e293b/ffffff?text=Kha+Doan+Bac+Dau', 'https://placehold.co/1920x1080/0f172a/ffffff?text=Slide+2'] 
+          });
           await setDoc(metaRef, { initialized: true });
         }
       } catch(e) { console.error("Seeding error:", e); }
@@ -181,7 +187,20 @@ export default function App() {
     return () => listeners.forEach(unsub => unsub());
   }, [authUser]);
 
-  const handleFileUpload = (e, callback) => {
+  // 3. Logic chạy Slideshow nền
+  useEffect(() => {
+    const slides = customLogos['bg_slides']?.images || [];
+    if (slides.length <= 1) return;
+    
+    const interval = setInterval(() => {
+      setCurrentSlideIndex((prev) => (prev + 1) % slides.length);
+    }, 6000); // Đổi ảnh mỗi 6 giây
+    
+    return () => clearInterval(interval);
+  }, [customLogos]);
+
+  // Hàm xử lý file chung (có hỗ trợ thay đổi độ phân giải nén)
+  const handleFileUpload = (e, callback, customMaxSize = 400) => {
     const file = e.target.files[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) {
@@ -195,18 +214,17 @@ export default function App() {
       const img = new Image();
       img.onload = () => {
         const canvas = document.createElement('canvas');
-        const MAX_SIZE = 400; 
         let width = img.width;
         let height = img.height;
-        if (width > height && width > MAX_SIZE) {
-          height *= MAX_SIZE / width; width = MAX_SIZE;
-        } else if (height > MAX_SIZE) {
-          width *= MAX_SIZE / height; height = MAX_SIZE;
+        if (width > height && width > customMaxSize) {
+          height *= customMaxSize / width; width = customMaxSize;
+        } else if (height > customMaxSize) {
+          width *= customMaxSize / height; height = customMaxSize;
         }
         canvas.width = width; canvas.height = height;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, width, height);
-        callback(canvas.toDataURL('image/jpeg', 0.7));
+        callback(canvas.toDataURL('image/jpeg', 0.8));
       };
       img.src = event.target.result;
     };
@@ -215,11 +233,27 @@ export default function App() {
 
   const handleSelectUser = (user) => { setCurrentUser(user); setCurrentView('profile'); window.scrollTo(0, 0); };
 
-  // --- ẢNH BÌA ---
+  // --- ẢNH BÌA & SLIDE NỀN ---
   const handleUpdateCover = async (e) => {
     e.preventDefault();
     await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'customLogos', 'main_cover'), coverForm);
     setShowEditCoverModal(false);
+  };
+
+  const handleAddSlide = async (base64) => {
+    const currentSlides = customLogos['bg_slides']?.images || [];
+    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'customLogos', 'bg_slides'), {
+      images: [...currentSlides, base64]
+    });
+  };
+
+  const handleRemoveSlide = async (indexToRemove) => {
+    const currentSlides = customLogos['bg_slides']?.images || [];
+    const newSlides = currentSlides.filter((_, idx) => idx !== indexToRemove);
+    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'customLogos', 'bg_slides'), {
+      images: newSlides
+    });
+    setCurrentSlideIndex(0); // Reset index tránh lỗi out of bounds
   };
 
   const renderCoverMedia = () => {
@@ -231,9 +265,9 @@ export default function App() {
       const ytMatch = coverData.url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
       if (ytMatch) {
         return (
-          <div className="absolute inset-0 overflow-hidden pointer-events-none bg-black">
+          <div className="absolute inset-0 overflow-hidden pointer-events-none bg-black flex items-center justify-center">
             <iframe 
-              className="absolute top-1/2 left-1/2 w-[300%] sm:w-[150%] h-[300%] sm:h-[150%] max-w-none -translate-x-1/2 -translate-y-1/2 pointer-events-none" 
+              className="absolute inset-0 w-full h-full pointer-events-none" 
               src={`https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&mute=1&loop=1&playlist=${ytMatch[1]}&controls=0&showinfo=0&rel=0`} 
               title="Cover Video" 
               frameBorder="0" 
@@ -393,10 +427,7 @@ export default function App() {
     return Object.keys(userBadges).filter(skill => userBadges[skill] === STATUS.COMPLETED);
   };
 
-
-  // ==========================================
   // --- GIAO DIỆN CHÍNH ---
-  // ==========================================
 
   if (loading) {
     return (
@@ -412,77 +443,223 @@ export default function App() {
   // ==========================================
   if (!currentUser) {
     const filteredUsers = users.filter(u => u.name.toLowerCase().includes(searchQuery.toLowerCase()));
+    const bgSlides = customLogos['bg_slides']?.images || [];
 
     return (
-      <div className="min-h-screen bg-slate-100 flex flex-col items-center p-4 sm:p-6 font-sans">
-        <div className="w-full max-w-3xl flex flex-col items-center mt-2 sm:mt-8 mb-8">
+      <div className="min-h-screen relative flex flex-col items-center font-sans overflow-x-hidden bg-slate-900">
+        
+        {/* LỚP NỀN SLIDESHOW */}
+        <div className="fixed inset-0 z-0">
+          {bgSlides.length === 0 ? (
+             <div className="absolute inset-0 bg-slate-100"></div>
+          ) : (
+             bgSlides.map((img, idx) => (
+                <img 
+                  key={idx} 
+                  src={img} 
+                  className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${idx === currentSlideIndex ? 'opacity-100' : 'opacity-0'}`} 
+                  alt="Background Slide"
+                />
+             ))
+          )}
+          {/* Lớp mủ đen để làm nổi bật nội dung phía trên */}
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-[2px]"></div>
+        </div>
+
+        {/* NỘI DUNG CHÍNH (NỔI LÊN TRÊN NỀN) */}
+        <div className="w-full max-w-3xl flex flex-col items-center mt-6 sm:mt-12 mb-8 relative z-10 px-4">
           
-          {/* KHU VỰC ẢNH/VIDEO BÌA VÀ LOGO */}
-          <div className="relative w-full h-48 sm:h-64 md:h-80 rounded-3xl shadow-lg mb-16 bg-slate-200">
-            <div className="w-full h-full rounded-3xl overflow-hidden relative">
-              {renderCoverMedia()}
-            </div>
+          {/* Box Kính mờ (Glassmorphism) chứa Logo và Tên */}
+          <div className="bg-white/90 backdrop-blur-md p-8 sm:p-10 rounded-[3rem] shadow-2xl flex flex-col items-center text-center w-full relative">
             
             {isAdmin && (
-              <button onClick={() => { 
-                const existingCover = customLogos['main_cover'] || { type: 'image', url: '' };
-                setCoverForm(existingCover); 
-                setShowEditCoverModal(true); 
-              }} className="absolute top-4 right-4 z-20 bg-black/60 hover:bg-black/80 text-white p-2 rounded-xl backdrop-blur-sm transition-all shadow-md" title="Đổi Ảnh/Video Bìa">
-                <Edit3 size={20} />
-              </button>
+              <div className="absolute top-4 right-4 flex space-x-2">
+                 <button onClick={() => setShowSlideModal(true)} className="bg-slate-800/80 hover:bg-slate-900 text-white p-2.5 rounded-xl backdrop-blur-sm transition-all shadow-md" title="Quản lý Nền Slide">
+                  <ImageIcon size={20} />
+                </button>
+                <button onClick={() => { 
+                  const existingCover = customLogos['main_cover'] || { type: 'image', url: '' };
+                  setCoverForm(existingCover); 
+                  setShowEditCoverModal(true); 
+                }} className="bg-red-800/80 hover:bg-red-900 text-white p-2.5 rounded-xl backdrop-blur-sm transition-all shadow-md" title="Đổi Ảnh/Video Khung Bìa (Phụ)">
+                  <Edit3 size={20} />
+                </button>
+              </div>
             )}
 
-            <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 z-30">
-              <div className="relative group">
-                <div className="w-24 h-24 rounded-full bg-red-800 flex items-center justify-center text-white shadow-xl overflow-hidden border-4 border-slate-100">
-                  {customLogos['main_logo']?.logo ? (
-                    <img src={customLogos['main_logo'].logo} alt="Logo Kha Đoàn" className="w-full h-full object-cover bg-white" />
-                  ) : (
-                    <ShieldCheck size={48} />
-                  )}
-                </div>
-                {isAdmin && (
-                  <label className="absolute inset-0 bg-black/60 hidden group-hover:flex items-center justify-center cursor-pointer rounded-full text-white transition-all backdrop-blur-sm" title="Đổi Logo Kha Đoàn">
-                    <Upload size={24} />
-                    <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, (base64) => handleCustomLogoUpload('main_logo', base64))} />
-                  </label>
+            {/* KHU VỰC ẢNH/VIDEO BÌA (Tùy chọn nằm trong khung trắng) */}
+            {(customLogos['main_cover']?.url || isAdmin) && (
+              <div className="relative w-full h-40 sm:h-56 rounded-3xl shadow-inner mb-12 bg-slate-200 overflow-hidden">
+                {renderCoverMedia()}
+              </div>
+            )}
+
+            <div className={`relative group inline-block mb-4 ${customLogos['main_cover']?.url || isAdmin ? '-mt-24' : ''}`}>
+              <div className="w-28 h-28 rounded-full bg-red-800 flex items-center justify-center text-white shadow-xl overflow-hidden border-4 border-white">
+                {customLogos['main_logo']?.logo ? (
+                  <img src={customLogos['main_logo'].logo} alt="Logo Kha Đoàn" className="w-full h-full object-cover bg-white" />
+                ) : (
+                  <ShieldCheck size={48} />
                 )}
               </div>
+              {isAdmin && (
+                <label className="absolute inset-0 bg-black/60 hidden group-hover:flex items-center justify-center cursor-pointer rounded-full text-white transition-all backdrop-blur-sm" title="Đổi Logo Kha Đoàn">
+                  <Upload size={24} />
+                  {/* Dùng maxSize 1200 cho Logo để nét hơn nếu cần, nhưng Logo thường để 400 là đẹp */}
+                  <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, (base64) => handleCustomLogoUpload('main_logo', base64))} />
+                </label>
+              )}
             </div>
-          </div>
 
-          <div className="text-center">
-            <h1 className="text-3xl font-bold text-slate-800 mb-2">Sổ Tay Kha Sinh</h1>
-            <p className="text-slate-600 font-medium uppercase tracking-widest text-sm leading-relaxed">
+            <h1 className="text-3xl sm:text-4xl font-black text-slate-800 mb-2">Sổ Tay Kha Sinh</h1>
+            <p className="text-slate-600 font-bold uppercase tracking-widest text-xs sm:text-sm leading-relaxed">
               Kha Đoàn Bắc Đẩu - Liên Đoàn Hội An<br />Đạo Quảng Nam - Châu Liên Quảng
             </p>
+
+            {isAdmin ? (
+              <div className="mt-8 flex flex-col items-center space-y-3 w-full">
+                <div className="inline-flex items-center space-x-2 bg-amber-100 text-amber-800 px-5 py-2.5 rounded-full text-sm font-bold shadow-sm border border-amber-200">
+                  <Unlock size={18} /><span>Chế độ Huynh Trưởng</span>
+                  <button onClick={() => setIsAdmin(false)} className="ml-3 text-amber-600 hover:text-amber-900 underline">Thoát</button>
+                </div>
+                <div className="flex flex-wrap justify-center gap-3">
+                  <button onClick={() => setShowAddTuanModal(true)} className="inline-flex items-center space-x-2 bg-slate-800 text-white px-6 py-3 rounded-full text-sm font-bold shadow-md hover:bg-slate-900 transition-colors">
+                    <Plus size={18} /><span>Thêm Tuần</span>
+                  </button>
+                  <button onClick={() => {
+                    if (tuans.length === 0) { alert('Vui lòng tạo ít nhất 1 Tuần trước khi thêm Kha sinh!'); return; }
+                    setShowAddUserModal(true);
+                  }} className="inline-flex items-center space-x-2 bg-red-800 text-white px-6 py-3 rounded-full text-sm font-bold shadow-md hover:bg-red-900 transition-colors">
+                    <Plus size={18} /><span>Thêm Kha Sinh</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button onClick={() => setShowAdminLogin(true)} className="mt-8 inline-flex items-center space-x-2 text-slate-500 hover:text-red-800 transition-colors text-sm font-bold bg-slate-100 px-6 py-3 rounded-full shadow-sm border border-slate-200">
+                <Lock size={16} /><span>Đăng nhập Huynh Trưởng</span>
+              </button>
+            )}
           </div>
 
-          {isAdmin ? (
-            <div className="mt-6 flex flex-col items-center space-y-3">
-              <div className="inline-flex items-center space-x-2 bg-amber-100 text-amber-800 px-5 py-2.5 rounded-full text-sm font-bold shadow-sm border border-amber-200">
-                <Unlock size={18} /><span>Chế độ Huynh Trưởng</span>
-                <button onClick={() => setIsAdmin(false)} className="ml-3 text-amber-600 hover:text-amber-900 underline">Thoát</button>
+          {/* Ô TÌM KIẾM & DANH SÁCH */}
+          <div className="w-full mt-8">
+            <div className="relative mb-6">
+              <Search className="absolute left-5 top-4 h-6 w-6 text-slate-400" />
+              <input type="text" placeholder="Tìm Kha sinh, Tuần..." className="w-full pl-14 pr-6 py-4 bg-white/90 backdrop-blur-md border-none rounded-3xl focus:ring-4 focus:ring-red-800/30 outline-none shadow-xl text-lg font-medium text-slate-800 placeholder:text-slate-400" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+            </div>
+
+            {tuans.length === 0 ? (
+              <div className="text-center py-12 text-white/70 font-medium bg-black/20 backdrop-blur-sm rounded-3xl border border-white/10">Chưa có Tuần nào được tạo.</div>
+            ) : (
+              tuans.map(tuan => {
+                const tuanUsers = filteredUsers.filter(u => u.tuanId === tuan.id);
+                // Ẩn Tuần nếu đang tìm kiếm mà Tuần đó ko có ai khớp
+                if (searchQuery && tuanUsers.length === 0 && !tuan.name.toLowerCase().includes(searchQuery.toLowerCase())) return null;
+
+                return (
+                  <div key={tuan.id} className="mb-8 bg-white/90 backdrop-blur-md rounded-3xl p-6 shadow-xl border border-white/50">
+                    <div className="flex items-center justify-between mb-4 px-2 border-b border-slate-200/60 pb-4">
+                      <div className="flex items-center space-x-3">
+                        {tuan.logo && <img src={tuan.logo} alt={tuan.name} className="w-10 h-10 rounded-full border-2 border-white shadow-sm object-cover bg-white" />}
+                        <h3 className="text-lg font-black text-slate-800 uppercase tracking-widest">{tuan.name}</h3>
+                      </div>
+                      {isAdmin && (
+                        <div className="flex items-center space-x-2">
+                          <button onClick={() => setEditingTuan(tuan)} className="p-2 bg-slate-100 text-slate-500 hover:bg-blue-100 hover:text-blue-600 rounded-xl transition-colors" title="Sửa Tuần">
+                            <Edit3 size={16} />
+                          </button>
+                          <button onClick={() => handleDeleteTuan(tuan.id, tuan.name)} className="p-2 bg-slate-100 text-slate-500 hover:bg-red-100 hover:text-red-600 rounded-xl transition-colors" title="Xóa Tuần">
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {tuanUsers.length === 0 ? (
+                      <div className="px-4 py-6 text-sm text-slate-500 italic bg-slate-100/50 rounded-2xl border border-dashed border-slate-300 text-center">Chưa có thành viên</div>
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {tuanUsers.map(user => {
+                          const userProg = progressData[user.id] || { info: { currentRank: user.currentRank } };
+                          return (
+                            <button key={user.id} onClick={() => handleSelectUser(user)} className="flex items-center p-3 hover:bg-red-50 rounded-2xl transition-all border border-slate-200 hover:border-red-200 group text-left shadow-sm bg-white">
+                              <div className="w-14 h-14 bg-slate-100 rounded-full overflow-hidden border-2 border-white shadow-sm shrink-0 flex items-center justify-center">
+                                {user.avatar ? (
+                                  <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+                                ) : (
+                                  <div className="text-slate-400 group-hover:text-red-800 transition-colors">
+                                    <User size={24} />
+                                  </div>
+                                )}
+                              </div>
+                              <div className="ml-4 flex-1">
+                                <p className="font-bold text-slate-800 text-lg group-hover:text-red-800 transition-colors">{user.name}</p>
+                                <p className="text-sm font-medium text-slate-500 mt-0.5">{userProg.info?.currentRank || user.currentRank}</p>
+                              </div>
+                              <div className="w-8 h-8 bg-slate-50 rounded-full flex items-center justify-center group-hover:bg-red-100 transition-colors">
+                                <ChevronRight size={18} className="text-slate-400 group-hover:text-red-800" />
+                              </div>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+        {/* MODAL: QUẢN LÝ NỀN SLIDESHOW */}
+        {showSlideModal && (
+          <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
+            <div className="bg-white rounded-3xl p-6 sm:p-8 w-full max-w-2xl shadow-2xl my-8">
+              <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
+                <h3 className="text-2xl font-black text-slate-800 flex items-center">
+                  <ImageIcon className="mr-3 text-red-800" /> Quản Lý Ảnh Nền (Slideshow)
+                </h3>
+                <button onClick={() => setShowSlideModal(false)} className="text-slate-400 hover:text-red-600 bg-slate-100 hover:bg-red-50 p-2 rounded-full transition-colors">
+                  X
+                </button>
               </div>
-              <div className="flex space-x-3">
-                <button onClick={() => setShowAddTuanModal(true)} className="inline-flex items-center space-x-2 bg-slate-800 text-white px-5 py-2.5 rounded-full text-sm font-bold shadow-md hover:bg-slate-900 transition-colors">
-                  <Plus size={18} /><span>Thêm Tuần</span>
-                </button>
-                <button onClick={() => {
-                  if (tuans.length === 0) { alert('Vui lòng tạo ít nhất 1 Tuần trước khi thêm Kha sinh!'); return; }
-                  setShowAddUserModal(true);
-                }} className="inline-flex items-center space-x-2 bg-red-800 text-white px-5 py-2.5 rounded-full text-sm font-bold shadow-md hover:bg-red-900 transition-colors">
-                  <Plus size={18} /><span>Thêm Kha Sinh</span>
-                </button>
+
+              <div className="space-y-6">
+                <div>
+                  <label className="flex items-center justify-center w-full p-6 border-2 border-dashed border-red-300 rounded-2xl bg-red-50 hover:bg-red-100 cursor-pointer transition-colors group">
+                    <div className="text-center">
+                      <Upload size={32} className="mx-auto text-red-500 mb-2 group-hover:scale-110 transition-transform" />
+                      <p className="font-bold text-red-800">Bấm vào đây để tải ảnh nền mới lên</p>
+                      <p className="text-xs text-red-600 mt-1">Ảnh sẽ tự chạy slide phía sau màn hình chính. (Hỗ trợ chất lượng cao HD)</p>
+                    </div>
+                    {/* Dùng maxSize = 1600 để ảnh nền nét hơn */}
+                    <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, handleAddSlide, 1600)} />
+                  </label>
+                </div>
+
+                <div>
+                  <h4 className="font-bold text-slate-700 mb-3">Các ảnh nền hiện tại ({bgSlides.length} ảnh):</h4>
+                  {bgSlides.length === 0 ? (
+                    <p className="text-sm text-slate-500 italic bg-slate-50 p-4 rounded-xl border border-slate-200">Hệ thống đang dùng màu nền mặc định.</p>
+                  ) : (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 max-h-96 overflow-y-auto pr-2">
+                      {bgSlides.map((img, idx) => (
+                        <div key={idx} className="relative group rounded-xl overflow-hidden shadow-sm border border-slate-200 aspect-video">
+                          <img src={img} alt={`Slide ${idx}`} className="w-full h-full object-cover" />
+                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <button onClick={() => handleRemoveSlide(idx)} className="bg-red-600 hover:bg-red-700 text-white p-2 rounded-lg shadow-md flex items-center text-sm font-bold">
+                              <Trash2 size={16} className="mr-1" /> Xóa
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-          ) : (
-            <button onClick={() => setShowAdminLogin(true)} className="mt-6 inline-flex items-center space-x-2 text-slate-500 hover:text-red-800 transition-colors text-sm font-medium bg-white px-4 py-2 rounded-full shadow-sm border border-slate-200">
-              <Lock size={16} /><span>Đăng nhập Huynh Trưởng</span>
-            </button>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* MODAL: ĐĂNG NHẬP HUYNH TRƯỞNG */}
         {showAdminLogin && (
@@ -494,51 +671,6 @@ export default function App() {
                 <div className="flex space-x-3">
                   <button type="button" onClick={() => setShowAdminLogin(false)} className="flex-1 px-4 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200">Hủy</button>
                   <button type="submit" className="flex-1 px-4 py-3 bg-red-800 text-white rounded-xl font-bold hover:bg-red-900 shadow-md">Vào</button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {/* MODAL: SỬA ẢNH/VIDEO BÌA */}
-        {showEditCoverModal && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
-            <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl my-8">
-              <h3 className="text-xl font-bold mb-4 text-slate-800">Cập Nhật Ảnh/Video Bìa</h3>
-              <form onSubmit={handleUpdateCover} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Định dạng bìa</label>
-                  <select className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-800 outline-none" value={coverForm.type} onChange={e => setCoverForm({...coverForm, type: e.target.value, url: ''})}>
-                    <option value="image">Ảnh Bìa tĩnh</option>
-                    <option value="video">Video Bìa (Nền động)</option>
-                  </select>
-                </div>
-                
-                {coverForm.type === 'image' ? (
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Tải ảnh lên hoặc dùng link</label>
-                    <div className="flex flex-col space-y-2">
-                      <div className="flex items-center space-x-3">
-                        <label className="cursor-pointer bg-slate-100 text-slate-700 px-4 py-2 rounded-xl text-sm font-bold hover:bg-slate-200 border border-slate-300 flex items-center">
-                          <Upload size={16} className="mr-2" /> Chọn ảnh
-                          <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, (base64) => setCoverForm({...coverForm, url: base64}))} />
-                        </label>
-                        <span className="text-xs text-slate-500">Tối ưu dung lượng</span>
-                      </div>
-                      <input type="text" placeholder="Hoặc dán link ảnh (https://...)" className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-800 outline-none text-sm" value={coverForm.url} onChange={e => setCoverForm({...coverForm, url: e.target.value})} />
-                    </div>
-                  </div>
-                ) : (
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Link Video (YouTube hoặc MP4)</label>
-                    <input type="text" required placeholder="VD: https://www.youtube.com/watch?v=..." className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-800 outline-none text-sm" value={coverForm.url} onChange={e => setCoverForm({...coverForm, url: e.target.value})} />
-                    <p className="text-xs text-slate-500 mt-2">Gợi ý: Copy đường dẫn từ Youtube dán vào đây. Hệ thống sẽ tự động phát ngầm làm video nền chuyên nghiệp (Không có tiếng).</p>
-                  </div>
-                )}
-                
-                <div className="flex space-x-3 pt-4">
-                  <button type="button" onClick={() => setShowEditCoverModal(false)} className="flex-1 px-4 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200">Hủy</button>
-                  <button type="submit" className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-md">Lưu Thay Đổi</button>
                 </div>
               </form>
             </div>
@@ -660,73 +792,51 @@ export default function App() {
           </div>
         )}
 
-        {/* --- DANH SÁCH THEO TUẦN --- */}
-        <div className="w-full max-w-2xl bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden">
-          <div className="p-6 border-b border-slate-100 bg-slate-50">
-            <div className="relative">
-              <Search className="absolute left-4 top-3.5 h-5 w-5 text-slate-400" />
-              <input type="text" placeholder="Tìm Kha sinh..." className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-2xl focus:ring-2 focus:ring-red-800 outline-none shadow-sm" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+        {/* MODAL: SỬA ẢNH/VIDEO BÌA (Phụ) */}
+        {showEditCoverModal && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
+            <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl my-8">
+              <h3 className="text-xl font-bold mb-4 text-slate-800">Cập Nhật Ảnh/Video Bìa</h3>
+              <form onSubmit={handleUpdateCover} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Định dạng bìa</label>
+                  <select className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-800 outline-none" value={coverForm.type} onChange={e => setCoverForm({...coverForm, type: e.target.value, url: ''})}>
+                    <option value="image">Ảnh Bìa tĩnh</option>
+                    <option value="video">Video Bìa (Nền động)</option>
+                  </select>
+                </div>
+                
+                {coverForm.type === 'image' ? (
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Tải ảnh lên hoặc dùng link</label>
+                    <div className="flex flex-col space-y-2">
+                      <div className="flex items-center space-x-3">
+                        <label className="cursor-pointer bg-slate-100 text-slate-700 px-4 py-2 rounded-xl text-sm font-bold hover:bg-slate-200 border border-slate-300 flex items-center">
+                          <Upload size={16} className="mr-2" /> Chọn ảnh
+                          <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, (base64) => setCoverForm({...coverForm, url: base64}), 1200)} />
+                        </label>
+                        <span className="text-xs text-slate-500">HD Format</span>
+                      </div>
+                      <input type="text" placeholder="Hoặc dán link ảnh (https://...)" className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-800 outline-none text-sm" value={coverForm.url} onChange={e => setCoverForm({...coverForm, url: e.target.value})} />
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Link Video (YouTube hoặc MP4)</label>
+                    <input type="text" required placeholder="VD: https://www.youtube.com/watch?v=..." className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-800 outline-none text-sm" value={coverForm.url} onChange={e => setCoverForm({...coverForm, url: e.target.value})} />
+                    <p className="text-xs text-slate-500 mt-2">Gợi ý: Copy đường dẫn từ Youtube dán vào đây. Hệ thống sẽ tự động phát ngầm làm video nền chuyên nghiệp (Không có tiếng).</p>
+                  </div>
+                )}
+                
+                <div className="flex space-x-3 pt-4">
+                  <button type="button" onClick={() => setShowEditCoverModal(false)} className="flex-1 px-4 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200">Hủy</button>
+                  <button type="submit" className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-md">Lưu Thay Đổi</button>
+                </div>
+              </form>
             </div>
           </div>
+        )}
 
-          <div className="p-4">
-            {tuans.length === 0 ? (
-              <div className="text-center py-8 text-slate-400 font-medium">Chưa có Tuần nào được tạo.</div>
-            ) : (
-              tuans.map(tuan => {
-                const tuanUsers = filteredUsers.filter(u => u.tuanId === tuan.id);
-                return (
-                  <div key={tuan.id} className="mb-8">
-                    <div className="flex items-center justify-between mb-3 px-2">
-                      <div className="flex items-center space-x-3">
-                        {tuan.logo && <img src={tuan.logo} alt={tuan.name} className="w-8 h-8 rounded-full border border-slate-200 object-cover bg-white" />}
-                        <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest">{tuan.name}</h3>
-                      </div>
-                      {isAdmin && (
-                        <div className="flex items-center space-x-1">
-                          <button onClick={() => setEditingTuan(tuan)} className="p-1.5 text-slate-300 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors" title="Sửa Tuần">
-                            <Edit3 size={16} />
-                          </button>
-                          <button onClick={() => handleDeleteTuan(tuan.id, tuan.name)} className="p-1.5 text-slate-300 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors" title="Xóa Tuần">
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-
-                    {tuanUsers.length === 0 ? (
-                      <div className="px-4 py-3 text-sm text-slate-400 italic bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-center">Chưa có thành viên</div>
-                    ) : (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {tuanUsers.map(user => {
-                          const userProg = progressData[user.id] || { info: { currentRank: user.currentRank } };
-                          return (
-                            <button key={user.id} onClick={() => handleSelectUser(user)} className="flex items-center p-3 hover:bg-red-50 rounded-2xl transition-all border border-transparent hover:border-red-100 group text-left shadow-sm bg-white ring-1 ring-slate-100">
-                              <div className="w-12 h-12 bg-slate-100 rounded-full overflow-hidden border-2 border-white shadow-sm shrink-0 flex items-center justify-center">
-                                {user.avatar ? (
-                                  <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
-                                ) : (
-                                  <div className="text-slate-400 group-hover:text-red-800 transition-colors">
-                                    <User size={20} />
-                                  </div>
-                                )}
-                              </div>
-                              <div className="ml-4 flex-1">
-                                <p className="font-bold text-slate-800">{user.name}</p>
-                                <p className="text-xs text-slate-500 mt-0.5">{userProg.info?.currentRank || user.currentRank}</p>
-                              </div>
-                              <ChevronRight size={18} className="text-slate-300 group-hover:text-red-800" />
-                            </button>
-                          )
-                        })}
-                      </div>
-                    )}
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
       </div>
     );
   }
@@ -778,9 +888,9 @@ export default function App() {
                 <ShieldCheck size={150} />
               </div>
               <div className="flex items-start space-x-6 relative z-10">
-                <div className="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center border-4 border-white shadow-md text-slate-400 overflow-hidden shrink-0">
+                <div className="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center border-4 border-white shadow-md text-slate-400 overflow-hidden shrink-0 bg-white">
                   {currentUser.avatar ? (
-                    <img src={currentUser.avatar} alt={currentUser.name} className="w-full h-full object-cover bg-white" />
+                    <img src={currentUser.avatar} alt={currentUser.name} className="w-full h-full object-cover" />
                   ) : (
                     <User size={40} />
                   )}
@@ -1417,4 +1527,3 @@ export default function App() {
     </div>
   );
 }
-
