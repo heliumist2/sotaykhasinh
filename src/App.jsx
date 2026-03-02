@@ -3,20 +3,30 @@ import {
   User, Award, CheckCircle2, Circle, Clock, LogOut, Search,
   ChevronRight, ShieldCheck, Lock, Unlock, ArrowLeft, 
   Calendar, Medal, Star, Target, BookOpen, FileText, Plus, 
-  Link as LinkIcon, Upload, Trash2, Edit3, HeartHandshake, Loader2
+  Link as LinkIcon, Upload, Trash2, Loader2, HeartHandshake
 } from 'lucide-react';
 
-// --- FIREBASE IMPORTS ---
 import { initializeApp } from 'firebase/app';
-import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
+import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc, getDoc } from 'firebase/firestore';
 
-// --- FIREBASE INITIALIZATION ---
-const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+// =====================================================================
+// CHÚ Ý: TRƯỞNG HÃY ĐIỀN THÔNG TIN FIREBASE VÀO TRONG DẤU NGOẶC KÉP ""
+// =====================================================================
+const firebaseConfig = {
+  apiKey: "AIzaSyDa0FbhmWyrL5KUGcShz3O1yv0WLj_sVZc",
+  authDomain: "sotaykhasinh.firebaseapp.com",
+  projectId: "sotaykhasinh",
+  storageBucket: "sotaykhasinh.firebasestorage.app",
+  messagingSenderId: "768096185567",
+  appId: "1:768096185567:web:eeaad2bdce029723420d6a"
+};
+// =====================================================================
+
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+const appId = 'kha-doan-bac-dau'; 
 
 // --- DỮ LIỆU MẪU ĐỂ KHỞI TẠO LẦN ĐẦU ---
 const INITIAL_TUANS = [
@@ -27,19 +37,16 @@ const INITIAL_TUANS = [
 const MOCK_USERS = [
   { id: 'k1', name: 'Nguyễn Văn A', tuanId: 't1', dob: '15/05/2006', currentRank: 'Thuần Kha', avatar: 'https://placehold.co/150x150/0f172a/white?text=A' },
   { id: 'k2', name: 'Trần Thị B', tuanId: 't1', dob: '22/08/2007', currentRank: 'Dự Kha', avatar: 'https://placehold.co/150x150/0f172a/white?text=B' },
-  { id: 'k3', name: 'Lê Văn C', tuanId: 't2', dob: '10/11/2005', currentRank: 'Kha Tiền Phong', avatar: 'https://placehold.co/150x150/0f172a/white?text=C' },
-  { id: 'k4', name: 'Phạm Thị D', tuanId: 't2', dob: '05/02/2008', currentRank: 'Tân Kha', avatar: 'https://placehold.co/150x150/0f172a/white?text=D' },
 ];
 
 const INITIAL_LAWS = [
   { id: 'l1', category: 'Lời Hứa', content: 'Tôi xin lấy danh dự hứa cố gắng hết sức:\n1. Làm bổn phận đối với tín ngưỡng tâm linh, quốc gia và xã hội.\n2. Giúp đỡ mọi người bất cứ lúc nào.\n3. Tuân theo Luật Hướng Đạo.' },
   { id: 'l2', category: 'Châm Ngôn', content: 'KHAI PHÁ' },
-  { id: 'l3', category: 'Luật Hướng Đạo', content: '1. Kha sinh trọng danh dự...\n2. Kha sinh trung thành...\n3. Kha sinh giúp ích...\n4. Kha sinh là bạn của mọi người...\n5. Kha sinh lễ độ...\n6. Kha sinh tôn trọng thiên nhiên...\n7. Kha sinh vâng lời...\n8. Kha sinh vui tươi...\n9. Kha sinh cần kiệm...\n10. Kha sinh trong sạch trong tư tưởng, lời nói và việc làm.' }
+  { id: 'l3', category: 'Luật Hướng Đạo', content: '1. Kha sinh trọng danh dự...\n2. Kha sinh trung thành...\n3. Kha sinh giúp ích...' }
 ];
 
 const INITIAL_DOC_CATEGORIES = [
-  { id: 'cat1', name: 'Kỹ năng chuyên môn', avatar: 'https://placehold.co/100x100/dc2626/white?text=KN' },
-  { id: 'cat2', name: 'Hoạt động thanh niên', avatar: 'https://placehold.co/100x100/2563eb/white?text=HD' }
+  { id: 'cat1', name: 'Kỹ năng chuyên môn', avatar: 'https://placehold.co/100x100/dc2626/white?text=KN' }
 ];
 
 const INITIAL_DOCS = [
@@ -87,7 +94,6 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [authUser, setAuthUser] = useState(null);
 
-  // States Dữ liệu Đám mây
   const [tuans, setTuans] = useState([]);
   const [users, setUsers] = useState([]);
   const [laws, setLaws] = useState([]);
@@ -96,7 +102,6 @@ export default function App() {
   const [progressData, setProgressData] = useState({});
   const [customLogos, setCustomLogos] = useState({});
   
-  // States Giao diện & Điều hướng
   const [currentUser, setCurrentUser] = useState(null);
   const [currentView, setCurrentView] = useState('profile');
   const [searchQuery, setSearchQuery] = useState('');
@@ -104,7 +109,6 @@ export default function App() {
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [adminPassword, setAdminPassword] = useState('');
 
-  // States Modals
   const [showAddTuanModal, setShowAddTuanModal] = useState(false);
   const [newTuan, setNewTuan] = useState({ name: '', logo: '' });
   const [showAddUserModal, setShowAddUserModal] = useState(false);
@@ -120,11 +124,7 @@ export default function App() {
   useEffect(() => {
     const initAuth = async () => {
       try {
-        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-          await signInWithCustomToken(auth, __initial_auth_token);
-        } else {
-          await signInAnonymously(auth);
-        }
+        await signInAnonymously(auth);
       } catch (err) {
         console.error("Auth Error:", err);
       }
@@ -142,8 +142,6 @@ export default function App() {
     if (!authUser) return;
 
     const listeners = [];
-
-    // Helper tạo listener
     const listenToCollection = (collName, setFn, isMap = false) => {
       const q = collection(db, 'artifacts', appId, 'public', 'data', collName);
       return onSnapshot(q, (snapshot) => {
@@ -165,120 +163,80 @@ export default function App() {
     listeners.push(listenToCollection('progressData', setProgressData, true));
     listeners.push(listenToCollection('customLogos', setCustomLogos, true));
 
-    // Khởi tạo dữ liệu mẫu nếu Database trống hoàn toàn (Chạy 1 lần duy nhất)
     const checkAndSeedData = async () => {
       try {
         const metaRef = doc(db, 'artifacts', appId, 'public', 'data', 'metadata', 'init');
         const metaSnap = await getDoc(metaRef);
         if (!metaSnap.exists()) {
-          // Ghi dữ liệu mẫu
           INITIAL_TUANS.forEach(t => setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tuans', t.id), t));
           MOCK_USERS.forEach(u => setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', u.id), u));
           INITIAL_LAWS.forEach(l => setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'laws', l.id), l));
           INITIAL_DOC_CATEGORIES.forEach(c => setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'docCategories', c.id), c));
           INITIAL_DOCS.forEach(d => setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'documents', d.id), d));
           MOCK_USERS.forEach(u => setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'progressData', u.id), { badges: {}, ranks: {}, info: { currentRank: u.currentRank } }));
-          
           await setDoc(metaRef, { initialized: true });
         }
       } catch(e) { console.error("Seeding error:", e); }
-      finally {
-        setLoading(false);
-      }
+      finally { setLoading(false); }
     };
     checkAndSeedData();
 
     return () => listeners.forEach(unsub => unsub());
   }, [authUser]);
 
-  // Nén ảnh trước khi lưu (Giữ file nhỏ để đẩy lên Database)
   const handleFileUpload = (e, callback) => {
     const file = e.target.files[0];
     if (!file) return;
-    
-    // Nếu là file không phải ảnh (PDF, Doc) thì không thể dùng image resizer
     if (!file.type.startsWith('image/')) {
        const reader = new FileReader();
        reader.onloadend = () => callback(reader.result);
        reader.readAsDataURL(file);
        return;
     }
-
     const reader = new FileReader();
     reader.onload = (event) => {
       const img = new Image();
       img.onload = () => {
         const canvas = document.createElement('canvas');
-        const MAX_SIZE = 400; // Giới hạn kích thước ảnh 400px
+        const MAX_SIZE = 400; 
         let width = img.width;
         let height = img.height;
-
         if (width > height && width > MAX_SIZE) {
           height *= MAX_SIZE / width; width = MAX_SIZE;
         } else if (height > MAX_SIZE) {
           width *= MAX_SIZE / height; height = MAX_SIZE;
         }
-
-        canvas.width = width;
-        canvas.height = height;
+        canvas.width = width; canvas.height = height;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, width, height);
-        
-        callback(canvas.toDataURL('image/jpeg', 0.7)); // Giảm chất lượng còn 70%
+        callback(canvas.toDataURL('image/jpeg', 0.7));
       };
       img.src = event.target.result;
     };
     reader.readAsDataURL(file);
   };
 
-  // --- HÀM XỬ LÝ DATABASE TƯƠNG TÁC (CRUD) ---
-  const handleSelectUser = (user) => {
-    setCurrentUser(user);
-    setCurrentView('profile');
-    window.scrollTo(0, 0);
-  };
+  const handleSelectUser = (user) => { setCurrentUser(user); setCurrentView('profile'); window.scrollTo(0, 0); };
 
   const handleAddTuan = async (e) => {
-    e.preventDefault();
-    if (!newTuan.name.trim()) return;
+    e.preventDefault(); if (!newTuan.name.trim()) return;
     const id = 't' + Date.now();
-    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tuans', id), {
-      name: newTuan.name,
-      logo: newTuan.logo || `https://placehold.co/100x100/475569/white?text=${encodeURIComponent(newTuan.name.charAt(0))}`
-    });
-    setShowAddTuanModal(false);
-    setNewTuan({ name: '', logo: '' });
+    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tuans', id), { name: newTuan.name, logo: newTuan.logo || `https://placehold.co/100x100/475569/white?text=${encodeURIComponent(newTuan.name.charAt(0))}` });
+    setShowAddTuanModal(false); setNewTuan({ name: '', logo: '' });
   };
 
   const handleDeleteTuan = async (tuanId, tuanName) => {
     const hasUsers = users.some(u => u.tuanId === tuanId);
-    if (hasUsers) {
-      alert(`Không thể xóa ${tuanName} vì vẫn còn Kha sinh. Vui lòng chuyển các Kha sinh sang Tuần khác trước!`); return;
-    }
-    if (window.confirm(`Bạn có chắc muốn xóa ${tuanName}?`)) {
-      await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tuans', tuanId));
-    }
+    if (hasUsers) { alert(`Không thể xóa ${tuanName} vì vẫn còn Kha sinh. Vui lòng chuyển các Kha sinh sang Tuần khác trước!`); return; }
+    if (window.confirm(`Bạn có chắc muốn xóa ${tuanName}?`)) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tuans', tuanId));
   };
 
   const handleAddUser = async (e) => {
-    e.preventDefault();
-    if (!newUser.name.trim() || tuans.length === 0) return;
-    const id = 'k' + Date.now();
-    const defaultTuanId = newUser.tuanId || tuans[0].id;
-    
-    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', id), {
-      name: newUser.name,
-      tuanId: defaultTuanId,
-      dob: newUser.dob,
-      currentRank: 'Tân Kha',
-      avatar: newUser.avatar || `https://placehold.co/150x150/0f172a/white?text=${encodeURIComponent(newUser.name.charAt(0))}`
-    });
-    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'progressData', id), {
-      badges: {}, ranks: {}, info: { currentRank: 'Tân Kha' }
-    });
-    
-    setShowAddUserModal(false);
-    setNewUser({ name: '', tuanId: '', dob: '', avatar: '' });
+    e.preventDefault(); if (!newUser.name.trim() || tuans.length === 0) return;
+    const id = 'k' + Date.now(); const defaultTuanId = newUser.tuanId || tuans[0].id;
+    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', id), { name: newUser.name, tuanId: defaultTuanId, dob: newUser.dob, currentRank: 'Tân Kha', avatar: newUser.avatar || `https://placehold.co/150x150/0f172a/white?text=${encodeURIComponent(newUser.name.charAt(0))}` });
+    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'progressData', id), { badges: {}, ranks: {}, info: { currentRank: 'Tân Kha' } });
+    setShowAddUserModal(false); setNewUser({ name: '', tuanId: '', dob: '', avatar: '' });
   };
 
   const handleChangeUserTuan = async (newTuanId) => {
@@ -296,65 +254,48 @@ export default function App() {
   };
 
   const handleAddLaw = async (e) => {
-    e.preventDefault();
-    if (!newLaw.content.trim()) return;
+    e.preventDefault(); if (!newLaw.content.trim()) return;
     const id = 'l' + Date.now();
     await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'laws', id), newLaw);
-    setShowAddLawModal(false);
-    setNewLaw({ category: 'Lời Hứa', content: '' });
+    setShowAddLawModal(false); setNewLaw({ category: 'Lời Hứa', content: '' });
   };
 
   const handleDeleteLaw = async (lawId) => {
-    if (window.confirm('Bạn có muốn xóa nội dung này?')) {
-      await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'laws', lawId));
-    }
+    if (window.confirm('Bạn có muốn xóa nội dung này?')) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'laws', lawId));
   };
 
   const handleAddCategory = async (e) => {
-    e.preventDefault();
-    if (!newCategory.name.trim()) return;
+    e.preventDefault(); if (!newCategory.name.trim()) return;
     const id = 'cat' + Date.now();
     await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'docCategories', id), newCategory);
-    setShowAddCategoryModal(false);
-    setNewCategory({ name: '', avatar: '' });
+    setShowAddCategoryModal(false); setNewCategory({ name: '', avatar: '' });
   };
 
   const handleDeleteCategory = async (categoryId, categoryName) => {
     const hasDocs = documents.some(d => d.categoryId === categoryId);
-    if (hasDocs) {
-      alert(`Không thể xóa danh mục "${categoryName}" vì vẫn còn tài liệu bên trong. Vui lòng chuyển hoặc xóa các tài liệu trước!`); return;
-    }
-    if (window.confirm(`Bạn có chắc muốn xóa danh mục "${categoryName}"?`)) {
-      await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'docCategories', categoryId));
-    }
+    if (hasDocs) { alert(`Không thể xóa danh mục "${categoryName}" vì vẫn còn tài liệu bên trong.`); return; }
+    if (window.confirm(`Bạn có chắc muốn xóa danh mục "${categoryName}"?`)) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'docCategories', categoryId));
   };
 
   const handleAddDoc = async (e) => {
-    e.preventDefault();
-    if (!newDoc.title.trim()) return;
-    const id = 'd' + Date.now();
-    const categoryId = newDoc.categoryId || (docCategories.length > 0 ? docCategories[0].id : '');
+    e.preventDefault(); if (!newDoc.title.trim()) return;
+    const id = 'd' + Date.now(); const categoryId = newDoc.categoryId || (docCategories.length > 0 ? docCategories[0].id : '');
     await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'documents', id), { ...newDoc, categoryId });
-    setShowAddDocModal(false);
-    setNewDoc({ title: '', description: '', link: '', categoryId: '' });
+    setShowAddDocModal(false); setNewDoc({ title: '', description: '', link: '', categoryId: '' });
   };
 
   const handleDeleteDoc = async (docId, docTitle) => {
-    if (window.confirm(`Bạn có chắc muốn xóa tài liệu "${docTitle}"?`)) {
-      await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'documents', docId));
-    }
+    if (window.confirm(`Bạn có chắc muốn xóa tài liệu "${docTitle}"?`)) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'documents', docId));
   };
 
   const updateBadge = async (skillName, status) => {
     if (!currentUser) return;
     const currentProg = progressData[currentUser.id] || { badges: {}, ranks: {}, info: { currentRank: currentUser.currentRank } };
     const currentStatus = currentProg.badges[skillName] || STATUS.UNREGISTERED;
-    
     if (!isAdmin) {
       if (status === STATUS.COMPLETED) { alert('Chỉ Huynh trưởng mới được đánh dấu Đã đạt!'); return; }
       if (currentStatus === STATUS.COMPLETED) { alert('Năng hiệu này đã được HT duyệt, bạn không thể thay đổi!'); return; }
     }
-    
     const newProg = { ...currentProg, badges: { ...currentProg.badges, [skillName]: status } };
     await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'progressData', currentUser.id), newProg);
   };
@@ -379,7 +320,6 @@ export default function App() {
     await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'customLogos', id), { logo: base64 });
   };
 
-  // Utils Tính Toán
   const getEarnedCategories = (userId) => {
     const userBadges = progressData[userId]?.badges || {};
     return CATEGORIES.filter(cat => {
@@ -393,23 +333,15 @@ export default function App() {
     return Object.keys(userBadges).filter(skill => userBadges[skill] === STATUS.COMPLETED);
   };
 
-
-  // ==========================================
-  // --- UI: MÀN HÌNH CHỜ (LOADING) ---
-  // ==========================================
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50">
         <Loader2 className="animate-spin text-red-800 mb-4" size={48} />
-        <h2 className="text-xl font-bold text-slate-800">Đang tải Sổ Tay Kha Sinh...</h2>
-        <p className="text-slate-500 text-sm mt-2">Kết nối hệ thống đám mây</p>
+        <h2 className="text-xl font-bold text-slate-800">Đang kết nối hệ thống...</h2>
       </div>
     );
   }
 
-  // ==========================================
-  // --- UI: MÀN HÌNH DANH SÁCH (DASHBOARD) ---
-  // ==========================================
   if (!currentUser) {
     const filteredUsers = users.filter(u => u.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
@@ -482,9 +414,7 @@ export default function App() {
                         <Upload size={16} className="mr-2" /> Chọn ảnh từ máy
                         <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, (base64) => setNewTuan({...newTuan, logo: base64}))} />
                       </label>
-                      <span className="text-xs text-slate-500">hoặc dán link</span>
                     </div>
-                    <input type="text" placeholder="https://..." className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-800 outline-none text-sm" value={newTuan.logo} onChange={e => setNewTuan({...newTuan, logo: e.target.value})} />
                   </div>
                   {newTuan.logo && (
                     <div className="mt-2 w-16 h-16 rounded-2xl overflow-hidden border-2 border-slate-200 shadow-sm">
@@ -545,7 +475,6 @@ export default function App() {
           </div>
         )}
 
-        {/* --- KHU VỰC HIỂN THỊ DANH SÁCH THEO TUẦN --- */}
         <div className="w-full max-w-2xl bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden">
           <div className="p-6 border-b border-slate-100 bg-slate-50">
             <div className="relative">
@@ -605,35 +534,12 @@ export default function App() {
                 );
               })
             )}
-
-            {/* Hiển thị user chưa có Tuần hợp lệ */}
-            {filteredUsers.filter(u => !tuans.find(t => t.id === u.tuanId)).length > 0 && (
-              <div className="mb-6 pt-6 border-t border-slate-200">
-                <h3 className="px-4 py-2 text-sm font-bold text-amber-500 uppercase tracking-widest">Kha sinh chưa phân Tuần</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
-                  {filteredUsers.filter(u => !tuans.find(t => t.id === u.tuanId)).map(user => (
-                    <button key={user.id} onClick={() => handleSelectUser(user)} className="flex items-center p-3 hover:bg-amber-50 rounded-2xl transition-all group text-left ring-1 ring-amber-100">
-                      <div className="w-12 h-12 bg-slate-100 rounded-full overflow-hidden border-2 border-white shadow-sm shrink-0">
-                        {user.avatar ? <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" /> : <User size={20} className="m-auto mt-3 text-slate-400"/>}
-                      </div>
-                      <div className="ml-4 flex-1">
-                        <p className="font-bold text-slate-800">{user.name}</p>
-                      </div>
-                      <ChevronRight size={18} className="text-slate-300" />
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>
     );
   }
 
-  // ==========================================
-  // --- UI DỮ LIỆU CỦA USER BÊN TRONG TABS ---
-  // ==========================================
   const userData = progressData[currentUser.id] || { badges: {}, ranks: {}, info: { currentRank: currentUser.currentRank } };
   const activeRank = userData.info?.currentRank || currentUser.currentRank;
   const currentTuan = tuans.find(t => t.id === currentUser.tuanId);
@@ -644,7 +550,6 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-100 pb-24 font-sans selection:bg-red-200">
       
-      {/* Header */}
       <div className="bg-red-800 text-white sticky top-0 z-20 shadow-lg">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
           <button onClick={() => setCurrentUser(null)} className="p-2 hover:bg-white/20 rounded-full transition-colors flex items-center space-x-2">
@@ -654,7 +559,6 @@ export default function App() {
           <div className="w-10"></div>
         </div>
         
-        {/* Navigation Tabs */}
         <div className="max-w-4xl mx-auto px-4 flex space-x-1 overflow-x-auto no-scrollbar pb-2">
           {[
             { id: 'profile', label: 'Hồ Sơ' },
@@ -672,10 +576,8 @@ export default function App() {
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 mt-6">
 
-        {/* --- VIEW: HỒ SƠ --- */}
         {currentView === 'profile' && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* Thẻ Thông Tin */}
             <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200 relative overflow-hidden">
               <div className="absolute top-0 right-0 p-8 opacity-5">
                 <ShieldCheck size={150} />
@@ -692,7 +594,6 @@ export default function App() {
                   <h2 className="text-2xl font-black text-slate-800">{currentUser.name}</h2>
                   <div className="flex flex-wrap gap-4 mt-3 items-center">
                     
-                    {/* Hiển thị Tuần - Nếu Admin thì cho phép đổi */}
                     {isAdmin ? (
                       <div className="flex items-center text-slate-600 text-sm font-medium bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">
                         <Target size={16} className="mr-2 text-slate-400" />
@@ -719,7 +620,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Set Rank cho Admin */}
               <div className="mt-8 pt-6 border-t border-slate-100 flex items-center justify-between">
                 <div>
                   <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-1">Đẳng thứ hiện tại</p>
@@ -744,7 +644,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* Chuyên Hiệu Đã Đạt */}
             <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-lg font-bold text-slate-800 flex items-center">
@@ -782,7 +681,6 @@ export default function App() {
               )}
             </div>
 
-            {/* Thống kê Năng Hiệu */}
             <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200">
                <h3 className="text-lg font-bold text-slate-800 flex items-center mb-6">
                   <CheckCircle2 className="mr-2 text-emerald-500" /> Năng Hiệu Đã Đạt ({completedSkills.length})
@@ -800,7 +698,6 @@ export default function App() {
                </div>
             </div>
 
-            {/* Delete User Button (Admin only) */}
             {isAdmin && (
                <div className="pt-8 flex justify-center">
                  <button onClick={handleDeleteUser} className="flex items-center space-x-2 text-red-500 hover:text-red-700 hover:bg-red-50 px-6 py-3 rounded-xl font-bold transition-colors">
@@ -811,7 +708,6 @@ export default function App() {
           </div>
         )}
 
-        {/* --- VIEW: LUẬT VÀ LỜI HỨA --- */}
         {currentView === 'laws' && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
@@ -828,7 +724,6 @@ export default function App() {
               )}
             </div>
 
-            {/* Group Laws by Category */}
             {['Lời Hứa', 'Luật Hướng Đạo', 'Châm Ngôn', 'Điều Cần Nhớ'].map(cat => {
               const items = laws.filter(l => l.category === cat);
               if (items.length === 0 && !isAdmin) return null; 
@@ -860,7 +755,6 @@ export default function App() {
               );
             })}
 
-            {/* Thêm Luật Modal */}
             {showAddLawModal && (
               <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                 <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
@@ -890,7 +784,6 @@ export default function App() {
           </div>
         )}
 
-        {/* --- VIEW: ĐẲNG THỨ --- */}
         {currentView === 'ranks' && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="bg-blue-50 text-blue-800 p-4 rounded-2xl border border-blue-200 flex items-start space-x-3 text-sm">
@@ -930,7 +823,6 @@ export default function App() {
           </div>
         )}
 
-        {/* --- VIEW: NĂNG HIỆU (BADGES) --- */}
         {currentView === 'badges' && (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {CATEGORIES.map(cat => {
@@ -941,10 +833,8 @@ export default function App() {
               return (
                 <div key={cat.id} className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
                   
-                  {/* Category Header */}
                   <div className={`p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${hasEarnedMainBadge ? `bg-${cat.color}-50` : 'bg-slate-50'}`}>
                     <div className="flex items-center space-x-4">
-                      {/* Category Logo Upload Option for Admin */}
                       <div className="relative group shrink-0">
                         <div className={`w-14 h-14 rounded-full bg-white flex items-center justify-center shadow-sm overflow-hidden p-1 border border-${cat.color}-200`}>
                           <img src={catLogo} alt={cat.name} className="w-full h-full object-contain" />
@@ -975,7 +865,6 @@ export default function App() {
                     )}
                   </div>
 
-                  {/* Skills List */}
                   <div className="divide-y divide-slate-100">
                     {cat.skills.map(skill => {
                       const status = userData.badges[skill] || STATUS.UNREGISTERED;
@@ -984,7 +873,6 @@ export default function App() {
                       return (
                         <div key={skill} className="p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50/50 transition-colors">
                           <div className="flex items-center space-x-4">
-                            {/* Skill Logo Upload for Admin */}
                             <div className="relative group">
                               <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 border-2 overflow-hidden bg-white
                                 ${status === STATUS.COMPLETED ? 'border-emerald-500 shadow-sm' : 
@@ -1017,7 +905,6 @@ export default function App() {
                             </h3>
                           </div>
 
-                          {/* Action Buttons */}
                           <div className="flex bg-slate-100 p-1 rounded-xl w-full sm:w-auto ml-14 sm:ml-0">
                             {!isAdmin && status === STATUS.COMPLETED ? (
                               <div className="px-6 py-2 text-sm font-bold text-emerald-600 w-full text-center">
@@ -1065,7 +952,6 @@ export default function App() {
           </div>
         )}
 
-        {/* --- VIEW: TÀI LIỆU --- */}
         {currentView === 'documents' && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
@@ -1152,48 +1038,10 @@ export default function App() {
                   );
                 })
               )}
-              
-              {/* Hiển thị các tài liệu chưa phân loại */}
-              {documents.filter(d => !d.categoryId || !docCategories.find(c => c.id === d.categoryId)).length > 0 && (
-                <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
-                  <div className="p-5 border-b border-slate-100 bg-slate-50 flex items-center space-x-4">
-                    <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-sm overflow-hidden p-0.5 border border-slate-200 shrink-0">
-                      <div className="p-2 rounded-full bg-slate-200 text-slate-500"><BookOpen size={20} /></div>
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-black text-slate-800">Chưa phân loại</h3>
-                    </div>
-                  </div>
-                  <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {documents.filter(d => !d.categoryId || !docCategories.find(c => c.id === d.categoryId)).map(doc => (
-                      <div key={doc.id} className="relative bg-slate-50 p-4 rounded-2xl border border-slate-200 hover:border-red-300 hover:shadow-md transition-all group">
-                        <div className="flex items-start space-x-4 pr-6">
-                          <div className="p-3 bg-red-100 text-red-800 rounded-xl shrink-0">
-                            <FileText size={20} />
-                          </div>
-                          <div className="flex-1">
-                            <h4 className="font-bold text-slate-800 line-clamp-1">{doc.title}</h4>
-                            <p className="text-sm text-slate-500 mt-1 line-clamp-2">{doc.description}</p>
-                            <a href={doc.link !== '#' ? doc.link : undefined} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex items-center text-xs font-bold text-blue-600 hover:underline">
-                              <LinkIcon size={14} className="mr-1" /> Xem tài liệu
-                            </a>
-                          </div>
-                        </div>
-                        {isAdmin && (
-                          <button onClick={() => handleDeleteDoc(doc.id, doc.title)} className="absolute top-3 right-3 p-1.5 text-slate-400 hover:bg-red-100 hover:text-red-600 rounded-lg transition-colors" title="Xóa tài liệu này">
-                            <Trash2 size={16} />
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         )}
 
-        {/* --- MODALS ADD TÀI LIỆU --- */}
         {showAddDocModal && (
           <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
             <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl my-8">
@@ -1224,7 +1072,6 @@ export default function App() {
                         <Upload size={16} className="mr-2" /> Chọn File từ máy
                         <input type="file" className="hidden" onChange={(e) => handleFileUpload(e, (base64) => setNewDoc({...newDoc, link: base64}))} />
                       </label>
-                      <span className="text-xs text-slate-500">hoặc dán link bên dưới</span>
                     </div>
                     <input type="text" placeholder="https://..." className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-800 outline-none text-sm" value={newDoc.link} onChange={e => setNewDoc({...newDoc, link: e.target.value})} />
                   </div>
