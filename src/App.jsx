@@ -3,15 +3,13 @@ import {
   User, Award, CheckCircle2, Circle, Clock, LogOut, Search,
   ChevronRight, ShieldCheck, Lock, Unlock, ArrowLeft, 
   Calendar, Medal, Star, Target, BookOpen, FileText, Plus, 
-  Link as LinkIcon, Upload, Trash2, Loader2, HeartHandshake
+  Link as LinkIcon, Upload, Trash2, Edit3, Loader2, HeartHandshake
 } from 'lucide-react';
 
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc, getDoc } from 'firebase/firestore';
 
-// =====================================================================
-// CHÚ Ý: TRƯỞNG HÃY ĐIỀN THÔNG TIN FIREBASE VÀO TRONG DẤU NGOẶC KÉP ""
 // =====================================================================
 const firebaseConfig = {
   apiKey: "AIzaSyDa0FbhmWyrL5KUGcShz3O1yv0WLj_sVZc",
@@ -110,16 +108,25 @@ export default function App() {
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [adminPassword, setAdminPassword] = useState('');
 
+  // States Modals Thêm mới
   const [showAddTuanModal, setShowAddTuanModal] = useState(false);
   const [newTuan, setNewTuan] = useState({ name: '', logo: '' });
+  
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [newUser, setNewUser] = useState({ name: '', tuanId: '', dob: '', avatar: '' });
+  
   const [showAddLawModal, setShowAddLawModal] = useState(false);
   const [newLaw, setNewLaw] = useState({ category: 'Lời Hứa', content: '' });
+  
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
   const [newCategory, setNewCategory] = useState({ name: '', avatar: '' });
+  
   const [showAddDocModal, setShowAddDocModal] = useState(false);
   const [newDoc, setNewDoc] = useState({ title: '', description: '', link: '', categoryId: '' });
+
+  // States Modals Chỉnh sửa
+  const [editingTuan, setEditingTuan] = useState(null);
+  const [editingUser, setEditingUser] = useState(null);
 
   // 1. Khởi tạo Auth
   useEffect(() => {
@@ -219,11 +226,22 @@ export default function App() {
 
   const handleSelectUser = (user) => { setCurrentUser(user); setCurrentView('profile'); window.scrollTo(0, 0); };
 
+  // TUẦN
   const handleAddTuan = async (e) => {
     e.preventDefault(); if (!newTuan.name.trim()) return;
     const id = 't' + Date.now();
     await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tuans', id), { name: newTuan.name, logo: newTuan.logo || `https://placehold.co/100x100/475569/white?text=${encodeURIComponent(newTuan.name.charAt(0))}` });
     setShowAddTuanModal(false); setNewTuan({ name: '', logo: '' });
+  };
+
+  const handleUpdateTuan = async (e) => {
+    e.preventDefault();
+    if (!editingTuan.name.trim()) return;
+    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tuans', editingTuan.id), {
+      name: editingTuan.name,
+      logo: editingTuan.logo
+    }, { merge: true });
+    setEditingTuan(null);
   };
 
   const handleDeleteTuan = async (tuanId, tuanName) => {
@@ -232,12 +250,27 @@ export default function App() {
     if (window.confirm(`Bạn có chắc muốn xóa ${tuanName}?`)) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'tuans', tuanId));
   };
 
+  // KHA SINH
   const handleAddUser = async (e) => {
     e.preventDefault(); if (!newUser.name.trim() || tuans.length === 0) return;
     const id = 'k' + Date.now(); const defaultTuanId = newUser.tuanId || tuans[0].id;
     await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', id), { name: newUser.name, tuanId: defaultTuanId, dob: newUser.dob, currentRank: 'Tân Kha', avatar: newUser.avatar || `https://placehold.co/150x150/0f172a/white?text=${encodeURIComponent(newUser.name.charAt(0))}` });
     await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'progressData', id), { badges: {}, ranks: {}, info: { currentRank: 'Tân Kha' } });
     setShowAddUserModal(false); setNewUser({ name: '', tuanId: '', dob: '', avatar: '' });
+  };
+
+  const handleUpdateUser = async (e) => {
+    e.preventDefault();
+    if (!editingUser.name.trim()) return;
+    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', editingUser.id), {
+      name: editingUser.name,
+      dob: editingUser.dob,
+      avatar: editingUser.avatar
+    }, { merge: true });
+    if (currentUser?.id === editingUser.id) {
+      setCurrentUser({ ...currentUser, ...editingUser });
+    }
+    setEditingUser(null);
   };
 
   const handleChangeUserTuan = async (newTuanId) => {
@@ -254,6 +287,7 @@ export default function App() {
     }
   };
 
+  // LUẬT LỜI HỨA
   const handleAddLaw = async (e) => {
     e.preventDefault(); if (!newLaw.content.trim()) return;
     const id = 'l' + Date.now();
@@ -265,6 +299,7 @@ export default function App() {
     if (window.confirm('Bạn có muốn xóa nội dung này?')) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'laws', lawId));
   };
 
+  // TÀI LIỆU
   const handleAddCategory = async (e) => {
     e.preventDefault(); if (!newCategory.name.trim()) return;
     const id = 'cat' + Date.now();
@@ -289,6 +324,7 @@ export default function App() {
     if (window.confirm(`Bạn có chắc muốn xóa tài liệu "${docTitle}"?`)) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'documents', docId));
   };
 
+  // TIẾN TRÌNH RÈN LUYỆN
   const updateBadge = async (skillName, status) => {
     if (!currentUser) return;
     const currentProg = progressData[currentUser.id] || { badges: {}, ranks: {}, info: { currentRank: currentUser.currentRank } };
@@ -305,7 +341,8 @@ export default function App() {
     if (!isAdmin) return; 
     const key = `${rankId}_${criteriaIdx}`;
     const currentProg = progressData[currentUser.id] || { badges: {}, ranks: {}, info: { currentRank: currentUser.currentRank } };
-    const newProg = { ...currentProg, ranks: { ...currentProg.ranks, [key]: !currentProg.ranks[key] } };
+    const currentRanks = currentProg.ranks || {};
+    const newProg = { ...currentProg, ranks: { ...currentRanks, [key]: !currentRanks[key] } };
     await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'progressData', currentUser.id), newProg);
   };
 
@@ -334,6 +371,8 @@ export default function App() {
     return Object.keys(userBadges).filter(skill => userBadges[skill] === STATUS.COMPLETED);
   };
 
+  // --- GIAO DIỆN CHÍNH ---
+
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50">
@@ -343,6 +382,7 @@ export default function App() {
     );
   }
 
+  // --- MÀN HÌNH DASHBOARD (TRANG CHỦ) ---
   if (!currentUser) {
     const filteredUsers = users.filter(u => u.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
@@ -394,7 +434,7 @@ export default function App() {
           )}
         </div>
 
-        {/* --- MODALS QUẢN LÝ --- */}
+        {/* MODAL: ĐĂNG NHẬP HUYNH TRƯỞNG */}
         {showAdminLogin && (
           <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl">
@@ -410,6 +450,7 @@ export default function App() {
           </div>
         )}
 
+        {/* MODAL: THÊM TUẦN */}
         {showAddTuanModal && (
           <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
             <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl my-8">
@@ -430,7 +471,7 @@ export default function App() {
                     </div>
                   </div>
                   {newTuan.logo && (
-                    <div className="mt-2 w-16 h-16 rounded-2xl overflow-hidden border-2 border-slate-200 shadow-sm">
+                    <div className="mt-2 w-16 h-16 rounded-2xl overflow-hidden border-2 border-slate-200 shadow-sm flex items-center justify-center bg-white">
                       <img src={newTuan.logo} alt="Preview" className="w-full h-full object-cover" />
                     </div>
                   )}
@@ -444,6 +485,42 @@ export default function App() {
           </div>
         )}
 
+        {/* MODAL: SỬA TUẦN */}
+        {editingTuan && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
+            <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl my-8">
+              <h3 className="text-xl font-bold mb-4 text-slate-800">Sửa Thông Tin Tuần</h3>
+              <form onSubmit={handleUpdateTuan} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Tên Tuần</label>
+                  <input type="text" required className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-800 outline-none" value={editingTuan.name} onChange={e => setEditingTuan({...editingTuan, name: e.target.value})} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Cờ / Logo Tuần</label>
+                  <div className="flex flex-col space-y-2">
+                    <div className="flex items-center space-x-3">
+                      <label className="cursor-pointer bg-slate-100 text-slate-700 px-4 py-2 rounded-xl text-sm font-bold hover:bg-slate-200 border border-slate-300 flex items-center">
+                        <Upload size={16} className="mr-2" /> Chọn ảnh từ máy
+                        <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, (base64) => setEditingTuan({...editingTuan, logo: base64}))} />
+                      </label>
+                    </div>
+                  </div>
+                  {editingTuan.logo && (
+                    <div className="mt-2 w-16 h-16 rounded-2xl overflow-hidden border-2 border-slate-200 shadow-sm flex items-center justify-center bg-white">
+                      <img src={editingTuan.logo} alt="Preview" className="w-full h-full object-cover" />
+                    </div>
+                  )}
+                </div>
+                <div className="flex space-x-3 pt-4">
+                  <button type="button" onClick={() => setEditingTuan(null)} className="flex-1 px-4 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200">Hủy</button>
+                  <button type="submit" className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-md">Lưu Thay Đổi</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL: THÊM KHA SINH */}
         {showAddUserModal && (
           <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
             <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl my-8">
@@ -474,7 +551,7 @@ export default function App() {
                     </div>
                   </div>
                   {newUser.avatar && (
-                    <div className="mt-2 w-16 h-16 rounded-full overflow-hidden border-2 border-slate-200 shadow-sm">
+                    <div className="mt-2 w-16 h-16 rounded-full overflow-hidden border-2 border-slate-200 shadow-sm flex items-center justify-center bg-white">
                       <img src={newUser.avatar} alt="Preview" className="w-full h-full object-cover" />
                     </div>
                   )}
@@ -488,6 +565,7 @@ export default function App() {
           </div>
         )}
 
+        {/* --- KHU VỰC HIỂN THỊ DANH SÁCH THEO TUẦN --- */}
         <div className="w-full max-w-2xl bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden">
           <div className="p-6 border-b border-slate-100 bg-slate-50">
             <div className="relative">
@@ -506,13 +584,18 @@ export default function App() {
                   <div key={tuan.id} className="mb-8">
                     <div className="flex items-center justify-between mb-3 px-2">
                       <div className="flex items-center space-x-3">
-                        {tuan.logo && <img src={tuan.logo} alt={tuan.name} className="w-8 h-8 rounded-full border border-slate-200 object-cover" />}
+                        {tuan.logo && <img src={tuan.logo} alt={tuan.name} className="w-8 h-8 rounded-full border border-slate-200 object-cover bg-white" />}
                         <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest">{tuan.name}</h3>
                       </div>
                       {isAdmin && (
-                        <button onClick={() => handleDeleteTuan(tuan.id, tuan.name)} className="p-1.5 text-slate-300 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors" title="Xóa Tuần">
-                          <Trash2 size={16} />
-                        </button>
+                        <div className="flex items-center space-x-1">
+                          <button onClick={() => setEditingTuan(tuan)} className="p-1.5 text-slate-300 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors" title="Sửa Tuần">
+                            <Edit3 size={16} />
+                          </button>
+                          <button onClick={() => handleDeleteTuan(tuan.id, tuan.name)} className="p-1.5 text-slate-300 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors" title="Xóa Tuần">
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
                       )}
                     </div>
 
@@ -524,11 +607,11 @@ export default function App() {
                           const userProg = progressData[user.id] || { info: { currentRank: user.currentRank } };
                           return (
                             <button key={user.id} onClick={() => handleSelectUser(user)} className="flex items-center p-3 hover:bg-red-50 rounded-2xl transition-all border border-transparent hover:border-red-100 group text-left shadow-sm bg-white ring-1 ring-slate-100">
-                              <div className="w-12 h-12 bg-slate-100 rounded-full overflow-hidden border-2 border-white shadow-sm shrink-0">
+                              <div className="w-12 h-12 bg-slate-100 rounded-full overflow-hidden border-2 border-white shadow-sm shrink-0 flex items-center justify-center">
                                 {user.avatar ? (
                                   <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
                                 ) : (
-                                  <div className="w-full h-full flex items-center justify-center text-slate-400 group-hover:bg-red-800 group-hover:text-white transition-colors">
+                                  <div className="text-slate-400 group-hover:text-red-800 transition-colors">
                                     <User size={20} />
                                   </div>
                                 )}
@@ -553,6 +636,7 @@ export default function App() {
     );
   }
 
+  // --- MÀN HÌNH BÊN TRONG HỒ SƠ KHA SINH ---
   const userData = progressData[currentUser.id] || { badges: {}, ranks: {}, info: { currentRank: currentUser.currentRank } };
   const activeRank = userData.info?.currentRank || currentUser.currentRank;
   const currentTuan = tuans.find(t => t.id === currentUser.tuanId);
@@ -589,6 +673,7 @@ export default function App() {
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 mt-6">
 
+        {/* --- VIEW: HỒ SƠ KHA SINH --- */}
         {currentView === 'profile' && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200 relative overflow-hidden">
@@ -598,15 +683,21 @@ export default function App() {
               <div className="flex items-start space-x-6 relative z-10">
                 <div className="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center border-4 border-white shadow-md text-slate-400 overflow-hidden shrink-0">
                   {currentUser.avatar ? (
-                    <img src={currentUser.avatar} alt={currentUser.name} className="w-full h-full object-cover" />
+                    <img src={currentUser.avatar} alt={currentUser.name} className="w-full h-full object-cover bg-white" />
                   ) : (
                     <User size={40} />
                   )}
                 </div>
                 <div className="flex-1 pt-2">
-                  <h2 className="text-2xl font-black text-slate-800">{currentUser.name}</h2>
+                  <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
+                    {currentUser.name}
+                    {isAdmin && (
+                      <button onClick={() => setEditingUser(currentUser)} className="text-slate-300 hover:text-blue-600 transition-colors" title="Sửa thông tin Kha sinh">
+                        <Edit3 size={20} />
+                      </button>
+                    )}
+                  </h2>
                   <div className="flex flex-wrap gap-4 mt-3 items-center">
-                    
                     {isAdmin ? (
                       <div className="flex items-center text-slate-600 text-sm font-medium bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">
                         <Target size={16} className="mr-2 text-slate-400" />
@@ -618,7 +709,7 @@ export default function App() {
                     ) : (
                       <div className="flex items-center text-slate-600 text-sm font-medium bg-slate-100 px-3 py-1 rounded-lg">
                         {currentTuan?.logo ? (
-                          <img src={currentTuan.logo} alt={currentTuan.name} className="w-5 h-5 mr-2 rounded-full object-cover border border-slate-300" />
+                          <img src={currentTuan.logo} alt={currentTuan.name} className="w-5 h-5 mr-2 rounded-full object-cover border border-slate-300 bg-white" />
                         ) : (
                           <Target size={16} className="mr-2 text-slate-400" /> 
                         )}
@@ -637,11 +728,14 @@ export default function App() {
                 <div>
                   <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-1">Đẳng thứ hiện tại</p>
                   <div className="text-xl font-bold text-red-800 flex items-center">
-                    {RANKS.find(r => r.name === activeRank)?.logo ? (
-                      <img src={RANKS.find(r => r.name === activeRank).logo} alt={activeRank} className="w-8 h-8 mr-3 object-contain drop-shadow-sm" />
-                    ) : (
-                      <Medal size={24} className="mr-2" /> 
-                    )}
+                    {(() => {
+                      const currentRankData = RANKS.find(r => r.name === activeRank);
+                      return currentRankData?.logo ? (
+                        <img src={customLogos[currentRankData.id]?.logo || currentRankData.logo} alt={activeRank} className="w-8 h-8 mr-3 object-contain drop-shadow-sm bg-white rounded-full" />
+                      ) : (
+                        <Medal size={24} className="mr-2" /> 
+                      );
+                    })()}
                     {activeRank}
                   </div>
                 </div>
@@ -721,6 +815,46 @@ export default function App() {
           </div>
         )}
 
+        {/* MODAL: SỬA HỒ SƠ KHA SINH */}
+        {editingUser && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
+            <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl my-8">
+              <h3 className="text-xl font-bold mb-4 text-slate-800">Sửa Hồ Sơ Kha Sinh</h3>
+              <form onSubmit={handleUpdateUser} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Họ và tên</label>
+                  <input type="text" required className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-800 outline-none" value={editingUser.name} onChange={e => setEditingUser({...editingUser, name: e.target.value})} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Ngày sinh (DD/MM/YYYY)</label>
+                  <input type="text" placeholder="Ví dụ: 15/05/2006" className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-800 outline-none" value={editingUser.dob} onChange={e => setEditingUser({...editingUser, dob: e.target.value})} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Ảnh Đại Diện</label>
+                  <div className="flex flex-col space-y-2">
+                    <div className="flex items-center space-x-3">
+                      <label className="cursor-pointer bg-slate-100 text-slate-700 px-4 py-2 rounded-xl text-sm font-bold hover:bg-slate-200 border border-slate-300 flex items-center">
+                        <Upload size={16} className="mr-2" /> Chọn ảnh
+                        <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, (base64) => setEditingUser({...editingUser, avatar: base64}))} />
+                      </label>
+                    </div>
+                  </div>
+                  {editingUser.avatar && (
+                    <div className="mt-2 w-16 h-16 rounded-full overflow-hidden border-2 border-slate-200 shadow-sm flex items-center justify-center bg-white">
+                      <img src={editingUser.avatar} alt="Preview" className="w-full h-full object-cover" />
+                    </div>
+                  )}
+                </div>
+                <div className="flex space-x-3 pt-4">
+                  <button type="button" onClick={() => setEditingUser(null)} className="flex-1 px-4 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200">Hủy</button>
+                  <button type="submit" className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-md">Lưu Thay Đổi</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* --- VIEW: LUẬT VÀ LỜI HỨA --- */}
         {currentView === 'laws' && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
@@ -797,6 +931,7 @@ export default function App() {
           </div>
         )}
 
+        {/* --- VIEW: ĐẲNG THỨ --- */}
         {currentView === 'ranks' && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="bg-blue-50 text-blue-800 p-4 rounded-2xl border border-blue-200 flex items-start space-x-3 text-sm">
@@ -804,38 +939,50 @@ export default function App() {
               <p>Phần này dành cho <strong>Huynh trưởng</strong> đánh giá tiến độ rèn luyện tổng quát của Kha sinh. Kha sinh chỉ có thể xem.</p>
             </div>
 
-            {RANKS.map(rank => (
-              <div key={rank.id} className={`bg-white rounded-3xl overflow-hidden shadow-sm border ${activeRank === rank.name ? 'border-red-400 ring-2 ring-red-100' : 'border-slate-200'}`}>
-                <div className={`px-6 py-4 flex items-center justify-between ${activeRank === rank.name ? 'bg-red-50' : 'bg-slate-50'}`}>
-                  <div className="flex items-center space-x-3">
-                    {rank.logo && <img src={rank.logo} alt={rank.name} className="w-10 h-10 object-contain drop-shadow-sm" />}
-                    <h3 className="font-bold text-lg text-slate-800">{rank.name}</h3>
-                  </div>
-                  {activeRank === rank.name && <span className="bg-red-800 text-white text-xs font-bold px-3 py-1 rounded-full">Đang rèn luyện</span>}
-                </div>
-                <div className="p-2">
-                  {rank.criteria.map((cri, idx) => {
-                    const isChecked = userData.ranks[`${rank.id}_${idx}`];
-                    return (
-                      <div key={idx} 
-                        onClick={() => updateRankCriteria(rank.id, idx)}
-                        className={`flex items-start space-x-4 p-4 rounded-2xl transition-colors ${isAdmin ? 'cursor-pointer hover:bg-slate-50' : ''}`}
-                      >
-                        <div className={`mt-0.5 w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${isChecked ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300 text-transparent'}`}>
-                          <CheckCircle2 size={16} />
-                        </div>
-                        <p className={`text-sm sm:text-base font-medium ${isChecked ? 'text-slate-400 line-through' : 'text-slate-700'}`}>
-                          {cri}
-                        </p>
+            {RANKS.map(rank => {
+              const rankLogo = customLogos[rank.id]?.logo || rank.logo;
+              return (
+                <div key={rank.id} className={`bg-white rounded-3xl overflow-hidden shadow-sm border ${activeRank === rank.name ? 'border-red-400 ring-2 ring-red-100' : 'border-slate-200'}`}>
+                  <div className={`px-6 py-4 flex items-center justify-between ${activeRank === rank.name ? 'bg-red-50' : 'bg-slate-50'}`}>
+                    <div className="flex items-center space-x-3">
+                      <div className="relative group shrink-0 flex items-center justify-center w-12 h-12 rounded-full overflow-hidden bg-white shadow-sm border-2 border-slate-100">
+                        {rankLogo && <img src={rankLogo} alt={rank.name} className="w-10 h-10 object-contain drop-shadow-sm" />}
+                        {isAdmin && (
+                          <label className="absolute inset-0 bg-black/60 hidden group-hover:flex items-center justify-center cursor-pointer text-white transition-all backdrop-blur-sm" title="Đổi Logo Đẳng Thứ">
+                            <Upload size={16} />
+                            <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, (base64) => handleCustomLogoUpload(rank.id, base64))} />
+                          </label>
+                        )}
                       </div>
-                    )
-                  })}
+                      <h3 className="font-bold text-lg text-slate-800">{rank.name}</h3>
+                    </div>
+                    {activeRank === rank.name && <span className="bg-red-800 text-white text-xs font-bold px-3 py-1 rounded-full">Đang rèn luyện</span>}
+                  </div>
+                  <div className="p-2">
+                    {rank.criteria.map((cri, idx) => {
+                      const isChecked = (userData.ranks || {})[`${rank.id}_${idx}`];
+                      return (
+                        <div key={idx} 
+                          onClick={() => updateRankCriteria(rank.id, idx)}
+                          className={`flex items-start space-x-4 p-4 rounded-2xl transition-colors ${isAdmin ? 'cursor-pointer hover:bg-slate-50' : ''}`}
+                        >
+                          <div className={`mt-0.5 w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${isChecked ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300 text-transparent'}`}>
+                            <CheckCircle2 size={16} />
+                          </div>
+                          <p className={`text-sm sm:text-base font-medium ${isChecked ? 'text-slate-400 line-through' : 'text-slate-700'}`}>
+                            {cri}
+                          </p>
+                        </div>
+                      )
+                    })}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
+        {/* --- VIEW: NĂNG HIỆU --- */}
         {currentView === 'badges' && (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {CATEGORIES.map(cat => {
@@ -845,7 +992,6 @@ export default function App() {
 
               return (
                 <div key={cat.id} className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
-                  
                   <div className={`p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${hasEarnedMainBadge ? `bg-${cat.color}-50` : 'bg-slate-50'}`}>
                     <div className="flex items-center space-x-4">
                       <div className="relative group shrink-0">
@@ -965,6 +1111,7 @@ export default function App() {
           </div>
         )}
 
+        {/* --- VIEW: TÀI LIỆU --- */}
         {currentView === 'documents' && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
@@ -1051,6 +1198,42 @@ export default function App() {
                   );
                 })
               )}
+              
+              {documents.filter(d => !d.categoryId || !docCategories.find(c => c.id === d.categoryId)).length > 0 && (
+                <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+                  <div className="p-5 border-b border-slate-100 bg-slate-50 flex items-center space-x-4">
+                    <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-sm overflow-hidden p-0.5 border border-slate-200 shrink-0">
+                      <div className="p-2 rounded-full bg-slate-200 text-slate-500"><BookOpen size={20} /></div>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-black text-slate-800">Chưa phân loại</h3>
+                    </div>
+                  </div>
+                  <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {documents.filter(d => !d.categoryId || !docCategories.find(c => c.id === d.categoryId)).map(doc => (
+                      <div key={doc.id} className="relative bg-slate-50 p-4 rounded-2xl border border-slate-200 hover:border-red-300 hover:shadow-md transition-all group">
+                        <div className="flex items-start space-x-4 pr-6">
+                          <div className="p-3 bg-red-100 text-red-800 rounded-xl shrink-0">
+                            <FileText size={20} />
+                          </div>
+                          <div className="flex-1">
+                            <h4 className="font-bold text-slate-800 line-clamp-1">{doc.title}</h4>
+                            <p className="text-sm text-slate-500 mt-1 line-clamp-2">{doc.description}</p>
+                            <a href={doc.link !== '#' ? doc.link : undefined} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex items-center text-xs font-bold text-blue-600 hover:underline">
+                              <LinkIcon size={14} className="mr-1" /> Xem tài liệu
+                            </a>
+                          </div>
+                        </div>
+                        {isAdmin && (
+                          <button onClick={() => handleDeleteDoc(doc.id, doc.title)} className="absolute top-3 right-3 p-1.5 text-slate-400 hover:bg-red-100 hover:text-red-600 rounded-lg transition-colors" title="Xóa tài liệu này">
+                            <Trash2 size={16} />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -1126,44 +1309,6 @@ export default function App() {
                 <div className="flex space-x-3 pt-4">
                   <button type="button" onClick={() => setShowAddCategoryModal(false)} className="flex-1 px-4 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200">Hủy</button>
                   <button type="submit" className="flex-1 px-4 py-3 bg-red-800 text-white rounded-xl font-bold hover:bg-red-900 shadow-md">Thêm</button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {editingUser && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
-            <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl my-8">
-              <h3 className="text-xl font-bold mb-4 text-slate-800">Sửa Hồ Sơ Kha Sinh</h3>
-              <form onSubmit={handleUpdateUser} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Họ và tên</label>
-                  <input type="text" required className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-800 outline-none" value={editingUser.name} onChange={e => setEditingUser({...editingUser, name: e.target.value})} />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Ngày sinh (DD/MM/YYYY)</label>
-                  <input type="text" placeholder="Ví dụ: 15/05/2006" className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-800 outline-none" value={editingUser.dob} onChange={e => setEditingUser({...editingUser, dob: e.target.value})} />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Ảnh Đại Diện</label>
-                  <div className="flex flex-col space-y-2">
-                    <div className="flex items-center space-x-3">
-                      <label className="cursor-pointer bg-slate-100 text-slate-700 px-4 py-2 rounded-xl text-sm font-bold hover:bg-slate-200 border border-slate-300 flex items-center">
-                        <Upload size={16} className="mr-2" /> Chọn ảnh
-                        <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, (base64) => setEditingUser({...editingUser, avatar: base64}))} />
-                      </label>
-                    </div>
-                  </div>
-                  {editingUser.avatar && (
-                    <div className="mt-2 w-16 h-16 rounded-full overflow-hidden border-2 border-slate-200 shadow-sm flex items-center justify-center bg-white">
-                      <img src={editingUser.avatar} alt="Preview" className="w-full h-full object-cover" />
-                    </div>
-                  )}
-                </div>
-                <div className="flex space-x-3 pt-4">
-                  <button type="button" onClick={() => setEditingUser(null)} className="flex-1 px-4 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200">Hủy</button>
-                  <button type="submit" className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-md">Lưu Thay Đổi</button>
                 </div>
               </form>
             </div>
