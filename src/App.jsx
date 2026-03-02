@@ -19,7 +19,8 @@ const firebaseConfig = {
   projectId: "sotaykhasinh",
   storageBucket: "sotaykhasinh.firebasestorage.app",
   messagingSenderId: "768096185567",
-  appId: "1:768096185567:web:eeaad2bdce029723420d6a"
+  appId: "1:768096185567:web:eeaad2bdce029723420d6a",
+  measurementId: "G-MY3ZVTW9H2"
 };
 // =====================================================================
 
@@ -348,8 +349,20 @@ export default function App() {
     return (
       <div className="min-h-screen bg-slate-100 flex flex-col items-center p-4 sm:p-6 font-sans">
         <div className="w-full max-w-2xl mt-8 mb-8 text-center">
-          <div className="inline-flex items-center justify-center p-4 bg-red-800 rounded-full mb-4 text-white shadow-lg">
-            <ShieldCheck size={48} />
+          <div className="relative group inline-block mb-4">
+            <div className="w-24 h-24 rounded-full bg-red-800 flex items-center justify-center text-white shadow-lg overflow-hidden border-4 border-white">
+              {customLogos['main_logo']?.logo ? (
+                <img src={customLogos['main_logo'].logo} alt="Logo Kha Đoàn" className="w-full h-full object-cover bg-white" />
+              ) : (
+                <ShieldCheck size={48} />
+              )}
+            </div>
+            {isAdmin && (
+              <label className="absolute inset-0 bg-black/60 hidden group-hover:flex items-center justify-center cursor-pointer rounded-full text-white transition-all backdrop-blur-sm" title="Đổi Logo Kha Đoàn">
+                <Upload size={24} />
+                <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, (base64) => handleCustomLogoUpload('main_logo', base64))} />
+              </label>
+            )}
           </div>
           <h1 className="text-3xl font-bold text-slate-800 mb-2">Sổ Tay Kha Sinh</h1>
           <p className="text-slate-600 font-medium uppercase tracking-widest text-sm leading-relaxed">
@@ -1113,6 +1126,44 @@ export default function App() {
                 <div className="flex space-x-3 pt-4">
                   <button type="button" onClick={() => setShowAddCategoryModal(false)} className="flex-1 px-4 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200">Hủy</button>
                   <button type="submit" className="flex-1 px-4 py-3 bg-red-800 text-white rounded-xl font-bold hover:bg-red-900 shadow-md">Thêm</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {editingUser && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
+            <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl my-8">
+              <h3 className="text-xl font-bold mb-4 text-slate-800">Sửa Hồ Sơ Kha Sinh</h3>
+              <form onSubmit={handleUpdateUser} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Họ và tên</label>
+                  <input type="text" required className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-800 outline-none" value={editingUser.name} onChange={e => setEditingUser({...editingUser, name: e.target.value})} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Ngày sinh (DD/MM/YYYY)</label>
+                  <input type="text" placeholder="Ví dụ: 15/05/2006" className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-800 outline-none" value={editingUser.dob} onChange={e => setEditingUser({...editingUser, dob: e.target.value})} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Ảnh Đại Diện</label>
+                  <div className="flex flex-col space-y-2">
+                    <div className="flex items-center space-x-3">
+                      <label className="cursor-pointer bg-slate-100 text-slate-700 px-4 py-2 rounded-xl text-sm font-bold hover:bg-slate-200 border border-slate-300 flex items-center">
+                        <Upload size={16} className="mr-2" /> Chọn ảnh
+                        <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, (base64) => setEditingUser({...editingUser, avatar: base64}))} />
+                      </label>
+                    </div>
+                  </div>
+                  {editingUser.avatar && (
+                    <div className="mt-2 w-16 h-16 rounded-full overflow-hidden border-2 border-slate-200 shadow-sm flex items-center justify-center bg-white">
+                      <img src={editingUser.avatar} alt="Preview" className="w-full h-full object-cover" />
+                    </div>
+                  )}
+                </div>
+                <div className="flex space-x-3 pt-4">
+                  <button type="button" onClick={() => setEditingUser(null)} className="flex-1 px-4 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200">Hủy</button>
+                  <button type="submit" className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-md">Lưu Thay Đổi</button>
                 </div>
               </form>
             </div>
