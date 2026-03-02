@@ -476,7 +476,7 @@ export default function App() {
         <div className="w-full max-w-3xl flex flex-col items-center mt-6 sm:mt-12 mb-8 relative z-10 px-4">
           
           {/* Box Kính mờ (Glassmorphism) chứa Logo và Tên */}
-          <div className="bg-white/90 backdrop-blur-md p-8 sm:p-10 rounded-[3rem] shadow-2xl flex flex-col items-center text-center w-full relative">
+          <div className="bg-white/30 backdrop-blur-xl p-8 sm:p-10 rounded-[3rem] shadow-2xl border border-white/50 flex flex-col items-center text-center w-full relative">
             
             {isAdmin && (
               <div className="absolute top-4 right-4 flex space-x-2">
@@ -517,8 +517,8 @@ export default function App() {
               )}
             </div>
 
-            <h1 className="text-3xl sm:text-4xl font-black text-slate-800 mb-2">Sổ Tay Kha Sinh</h1>
-            <p className="text-slate-600 font-bold uppercase tracking-widest text-xs sm:text-sm leading-relaxed">
+            <h1 className="text-3xl sm:text-4xl font-black text-slate-900 drop-shadow-sm mb-2">Sổ Tay Kha Sinh</h1>
+            <p className="text-slate-800 font-bold uppercase tracking-widest text-xs sm:text-sm leading-relaxed drop-shadow-sm">
               Kha Đoàn Bắc Đẩu - Liên Đoàn Hội An<br />Đạo Quảng Nam - Châu Liên Quảng
             </p>
 
@@ -541,7 +541,7 @@ export default function App() {
                 </div>
               </div>
             ) : (
-              <button onClick={() => setShowAdminLogin(true)} className="mt-8 inline-flex items-center space-x-2 text-slate-500 hover:text-red-800 transition-colors text-sm font-bold bg-slate-100 px-6 py-3 rounded-full shadow-sm border border-slate-200">
+              <button onClick={() => setShowAdminLogin(true)} className="mt-8 inline-flex items-center space-x-2 text-slate-600 hover:text-red-800 transition-colors text-sm font-bold bg-white/50 backdrop-blur-sm px-6 py-3 rounded-full shadow-sm border border-white/60">
                 <Lock size={16} /><span>Đăng nhập Huynh Trưởng</span>
               </button>
             )}
@@ -550,12 +550,12 @@ export default function App() {
           {/* Ô TÌM KIẾM & DANH SÁCH */}
           <div className="w-full mt-8">
             <div className="relative mb-6">
-              <Search className="absolute left-5 top-4 h-6 w-6 text-slate-400" />
-              <input type="text" placeholder="Tìm Kha sinh, Tuần..." className="w-full pl-14 pr-6 py-4 bg-white/90 backdrop-blur-md border-none rounded-3xl focus:ring-4 focus:ring-red-800/30 outline-none shadow-xl text-lg font-medium text-slate-800 placeholder:text-slate-400" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+              <Search className="absolute left-5 top-4 h-6 w-6 text-slate-600" />
+              <input type="text" placeholder="Tìm Kha sinh, Tuần..." className="w-full pl-14 pr-6 py-4 bg-white/40 backdrop-blur-xl border border-white/50 rounded-3xl focus:ring-4 focus:ring-red-800/30 outline-none shadow-xl text-lg font-medium text-slate-900 placeholder:text-slate-700" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
             </div>
 
             {tuans.length === 0 ? (
-              <div className="text-center py-12 text-white/70 font-medium bg-black/20 backdrop-blur-sm rounded-3xl border border-white/10">Chưa có Tuần nào được tạo.</div>
+              <div className="text-center py-12 text-slate-800 font-bold bg-white/40 backdrop-blur-xl rounded-3xl border border-white/50 shadow-xl">Chưa có Tuần nào được tạo.</div>
             ) : (
               tuans.map(tuan => {
                 const tuanUsers = filteredUsers.filter(u => u.tuanId === tuan.id);
@@ -563,18 +563,18 @@ export default function App() {
                 if (searchQuery && tuanUsers.length === 0 && !tuan.name.toLowerCase().includes(searchQuery.toLowerCase())) return null;
 
                 return (
-                  <div key={tuan.id} className="mb-8 bg-white/90 backdrop-blur-md rounded-3xl p-6 shadow-xl border border-white/50">
-                    <div className="flex items-center justify-between mb-4 px-2 border-b border-slate-200/60 pb-4">
+                  <div key={tuan.id} className="mb-8 bg-white/30 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/50">
+                    <div className="flex items-center justify-between mb-4 px-2 border-b border-slate-800/10 pb-4">
                       <div className="flex items-center space-x-3">
                         {tuan.logo && <img src={tuan.logo} alt={tuan.name} className="w-10 h-10 rounded-full border-2 border-white shadow-sm object-cover bg-white" />}
-                        <h3 className="text-lg font-black text-slate-800 uppercase tracking-widest">{tuan.name}</h3>
+                        <h3 className="text-lg font-black text-slate-900 drop-shadow-sm uppercase tracking-widest">{tuan.name}</h3>
                       </div>
                       {isAdmin && (
                         <div className="flex items-center space-x-2">
-                          <button onClick={() => setEditingTuan(tuan)} className="p-2 bg-slate-100 text-slate-500 hover:bg-blue-100 hover:text-blue-600 rounded-xl transition-colors" title="Sửa Tuần">
+                          <button onClick={() => setEditingTuan(tuan)} className="p-2 bg-white/50 text-slate-700 hover:bg-blue-500 hover:text-white rounded-xl transition-colors shadow-sm" title="Sửa Tuần">
                             <Edit3 size={16} />
                           </button>
-                          <button onClick={() => handleDeleteTuan(tuan.id, tuan.name)} className="p-2 bg-slate-100 text-slate-500 hover:bg-red-100 hover:text-red-600 rounded-xl transition-colors" title="Xóa Tuần">
+                          <button onClick={() => handleDeleteTuan(tuan.id, tuan.name)} className="p-2 bg-white/50 text-slate-700 hover:bg-red-500 hover:text-white rounded-xl transition-colors shadow-sm" title="Xóa Tuần">
                             <Trash2 size={16} />
                           </button>
                         </div>
@@ -582,28 +582,28 @@ export default function App() {
                     </div>
 
                     {tuanUsers.length === 0 ? (
-                      <div className="px-4 py-6 text-sm text-slate-500 italic bg-slate-100/50 rounded-2xl border border-dashed border-slate-300 text-center">Chưa có thành viên</div>
+                      <div className="px-4 py-6 text-sm text-slate-700 italic bg-white/40 rounded-2xl border border-dashed border-white/60 text-center">Chưa có thành viên</div>
                     ) : (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         {tuanUsers.map(user => {
                           const userProg = progressData[user.id] || { info: { currentRank: user.currentRank } };
                           return (
-                            <button key={user.id} onClick={() => handleSelectUser(user)} className="flex items-center p-3 hover:bg-red-50 rounded-2xl transition-all border border-slate-200 hover:border-red-200 group text-left shadow-sm bg-white">
-                              <div className="w-14 h-14 bg-slate-100 rounded-full overflow-hidden border-2 border-white shadow-sm shrink-0 flex items-center justify-center">
+                            <button key={user.id} onClick={() => handleSelectUser(user)} className="flex items-center p-3 hover:bg-white/80 rounded-2xl transition-all border border-white/50 hover:border-white group text-left shadow-md bg-white/50 backdrop-blur-sm">
+                              <div className="w-14 h-14 bg-white/80 rounded-full overflow-hidden border-2 border-white shadow-sm shrink-0 flex items-center justify-center">
                                 {user.avatar ? (
                                   <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
                                 ) : (
-                                  <div className="text-slate-400 group-hover:text-red-800 transition-colors">
+                                  <div className="text-slate-500 group-hover:text-red-800 transition-colors">
                                     <User size={24} />
                                   </div>
                                 )}
                               </div>
                               <div className="ml-4 flex-1">
-                                <p className="font-bold text-slate-800 text-lg group-hover:text-red-800 transition-colors">{user.name}</p>
-                                <p className="text-sm font-medium text-slate-500 mt-0.5">{userProg.info?.currentRank || user.currentRank}</p>
+                                <p className="font-bold text-slate-900 text-lg group-hover:text-red-800 transition-colors drop-shadow-sm">{user.name}</p>
+                                <p className="text-sm font-medium text-slate-700 mt-0.5">{userProg.info?.currentRank || user.currentRank}</p>
                               </div>
-                              <div className="w-8 h-8 bg-slate-50 rounded-full flex items-center justify-center group-hover:bg-red-100 transition-colors">
-                                <ChevronRight size={18} className="text-slate-400 group-hover:text-red-800" />
+                              <div className="w-8 h-8 bg-white/60 rounded-full flex items-center justify-center group-hover:bg-red-100 transition-colors shadow-sm">
+                                <ChevronRight size={18} className="text-slate-700 group-hover:text-red-800" />
                               </div>
                             </button>
                           )
