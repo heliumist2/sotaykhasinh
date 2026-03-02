@@ -897,8 +897,12 @@ export default function App() {
         {currentView === 'profile' && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200 relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-8 opacity-5">
-                <ShieldCheck size={150} />
+              <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
+                {customLogos['main_logo']?.logo ? (
+                  <img src={customLogos['main_logo'].logo} alt="Watermark Logo" className="w-32 h-32 sm:w-40 sm:h-40 object-contain grayscale" />
+                ) : (
+                  <ShieldCheck size={150} />
+                )}
               </div>
               <div className="flex items-start space-x-6 relative z-10">
                 <div className="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center border-4 border-white shadow-md text-slate-400 overflow-hidden shrink-0 bg-white">
