@@ -199,7 +199,7 @@ export default function App() {
     return () => clearInterval(interval);
   }, [customLogos]);
 
-  // Hàm xử lý file chung (có hỗ trợ thay đổi độ phân giải nén)
+  // Hàm xử lý file chung
   const handleFileUpload = (e, callback, customMaxSize = 400) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -224,8 +224,8 @@ export default function App() {
         canvas.width = width; canvas.height = height;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, width, height);
-        // Tối ưu dung lượng: Ảnh nền lớn sẽ bị nén mạnh hơn (0.5) để lưu được nhiều ảnh, ảnh nhỏ giữ chất lượng cao (0.8)
-        callback(canvas.toDataURL('image/jpeg', customMaxSize > 800 ? 0.5 : 0.8));
+        // Tăng chất lượng ảnh lên 0.75 để ảnh nền không bị bể hạt, giữ nét HD
+        callback(canvas.toDataURL('image/jpeg', customMaxSize > 800 ? 0.75 : 0.85));
       };
       img.src = event.target.result;
     };
@@ -247,9 +247,13 @@ export default function App() {
       alert("Đã đạt giới hạn tối đa 10 ảnh! Trưởng vui lòng xóa bớt ảnh cũ trước khi thêm mới.");
       return;
     }
-    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'customLogos', 'bg_slides'), {
-      images: [...currentSlides, base64]
-    });
+    try {
+      await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'customLogos', 'bg_slides'), {
+        images: [...currentSlides, base64]
+      });
+    } catch (error) {
+      alert("Ảnh quá nặng hoặc đã vượt quá dung lượng lưu trữ của hệ thống. Vui lòng xóa bớt ảnh cũ hoặc chọn ảnh khác nhỏ hơn.");
+    }
   };
 
   const handleRemoveSlide = async (indexToRemove) => {
@@ -264,7 +268,6 @@ export default function App() {
   const renderCoverMedia = () => {
     const coverData = customLogos['main_cover'];
     if (!coverData || !coverData.url) {
-      // Đổi placeholder mặc định sang tỷ lệ 16:9 (1200x675)
       return <img src="https://placehold.co/1200x675/94a3b8/ffffff?text=Anh+Bia+Kha+Doan" alt="Cover" className="absolute inset-0 w-full h-full object-cover" />;
     }
     if (coverData.type === 'video') {
@@ -457,7 +460,7 @@ export default function App() {
         {/* LỚP NỀN SLIDESHOW */}
         <div className="fixed inset-0 z-0">
           {bgSlides.length === 0 ? (
-             <div className="absolute inset-0 bg-slate-100"></div>
+             <div className="absolute inset-0 bg-slate-800"></div>
           ) : (
              bgSlides.map((img, idx) => (
                 <img 
@@ -468,18 +471,18 @@ export default function App() {
                 />
              ))
           )}
-          {/* Lớp phủ đen mỏng để làm nổi bật chữ trắng, đã loại bỏ hiệu ứng blur làm mờ ảnh */}
-          <div className="absolute inset-0 bg-slate-900/30"></div>
+          {/* Lớp phủ đen để làm nổi bật chữ trắng, loại bỏ blur để ảnh nền được sắc nét tuyệt đối */}
+          <div className="absolute inset-0 bg-black/40"></div>
         </div>
 
         {/* NỘI DUNG CHÍNH (NỔI LÊN TRÊN NỀN) */}
         <div className="w-full max-w-3xl flex flex-col items-center mt-6 sm:mt-12 mb-8 relative z-10 px-4">
           
-          {/* Box Kính mờ (Glassmorphism) chứa Logo và Tên */}
-          <div className="bg-white/30 backdrop-blur-xl p-8 sm:p-10 rounded-[3rem] shadow-2xl border border-white/50 flex flex-col items-center text-center w-full relative">
+          {/* Box Kính siêu trong suốt (Glassmorphism) chứa Logo và Tên */}
+          <div className="bg-white/10 backdrop-blur-md p-8 sm:p-10 rounded-[3rem] shadow-2xl border border-white/20 flex flex-col items-center text-center w-full relative">
             
             {isAdmin && (
-              <div className="absolute top-4 right-4 flex space-x-2">
+              <div className="absolute top-4 right-4 flex space-x-2 z-40">
                  <button onClick={() => setShowSlideModal(true)} className="bg-slate-800/80 hover:bg-slate-900 text-white p-2.5 rounded-xl backdrop-blur-sm transition-all shadow-md" title="Quản lý Nền Slide">
                   <ImageIcon size={20} />
                 </button>
@@ -495,13 +498,13 @@ export default function App() {
 
             {/* KHU VỰC ẢNH/VIDEO BÌA (Tùy chọn nằm trong khung trắng) */}
             {(customLogos['main_cover']?.url || isAdmin) && (
-              <div className="relative w-full aspect-video rounded-3xl shadow-inner mb-12 bg-slate-200 overflow-hidden">
+              <div className="relative w-full aspect-video rounded-3xl shadow-inner mb-12 bg-slate-900/50 overflow-hidden border border-white/10">
                 {renderCoverMedia()}
               </div>
             )}
 
-            <div className={`relative group inline-block mb-4 ${customLogos['main_cover']?.url || isAdmin ? '-mt-20 sm:-mt-24' : ''}`}>
-              <div className="w-28 h-28 rounded-full bg-red-800 flex items-center justify-center text-white shadow-xl overflow-hidden border-4 border-white">
+            <div className={`relative group inline-block mb-4 ${customLogos['main_cover']?.url || isAdmin ? '-mt-20 sm:-mt-24 z-30' : ''}`}>
+              <div className="w-28 h-28 rounded-full bg-red-800 flex items-center justify-center text-white shadow-xl overflow-hidden border-4 border-white/80">
                 {customLogos['main_logo']?.logo ? (
                   <img src={customLogos['main_logo'].logo} alt="Logo Kha Đoàn" className="w-full h-full object-cover bg-white" />
                 ) : (
@@ -511,37 +514,37 @@ export default function App() {
               {isAdmin && (
                 <label className="absolute inset-0 bg-black/60 hidden group-hover:flex items-center justify-center cursor-pointer rounded-full text-white transition-all backdrop-blur-sm" title="Đổi Logo Kha Đoàn">
                   <Upload size={24} />
-                  {/* Dùng maxSize 1200 cho Logo để nét hơn nếu cần, nhưng Logo thường để 400 là đẹp */}
-                  <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, (base64) => handleCustomLogoUpload('main_logo', base64))} />
+                  <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, (base64) => handleCustomLogoUpload('main_logo', base64), 600)} />
                 </label>
               )}
             </div>
 
-            <h1 className="text-3xl sm:text-4xl font-black text-slate-900 drop-shadow-sm mb-2">Sổ Tay Kha Sinh</h1>
-            <p className="text-slate-800 font-bold uppercase tracking-widest text-xs sm:text-sm leading-relaxed drop-shadow-sm">
+            {/* Chuyển chữ thành màu trắng có viền bóng để nổi bật trên ảnh nền */}
+            <h1 className="text-3xl sm:text-4xl font-black text-white drop-shadow-md mb-2">Sổ Tay Kha Sinh</h1>
+            <p className="text-slate-100 font-bold uppercase tracking-widest text-xs sm:text-sm leading-relaxed drop-shadow-md">
               Kha Đoàn Bắc Đẩu - Liên Đoàn Hội An<br />Đạo Quảng Nam - Châu Liên Quảng
             </p>
 
             {isAdmin ? (
               <div className="mt-8 flex flex-col items-center space-y-3 w-full">
-                <div className="inline-flex items-center space-x-2 bg-amber-100 text-amber-800 px-5 py-2.5 rounded-full text-sm font-bold shadow-sm border border-amber-200">
+                <div className="inline-flex items-center space-x-2 bg-amber-500/20 text-amber-300 px-5 py-2.5 rounded-full text-sm font-bold shadow-sm border border-amber-500/30 backdrop-blur-md">
                   <Unlock size={18} /><span>Chế độ Huynh Trưởng</span>
-                  <button onClick={() => setIsAdmin(false)} className="ml-3 text-amber-600 hover:text-amber-900 underline">Thoát</button>
+                  <button onClick={() => setIsAdmin(false)} className="ml-3 text-amber-200 hover:text-white underline">Thoát</button>
                 </div>
                 <div className="flex flex-wrap justify-center gap-3">
-                  <button onClick={() => setShowAddTuanModal(true)} className="inline-flex items-center space-x-2 bg-slate-800 text-white px-6 py-3 rounded-full text-sm font-bold shadow-md hover:bg-slate-900 transition-colors">
+                  <button onClick={() => setShowAddTuanModal(true)} className="inline-flex items-center space-x-2 bg-white/20 text-white hover:bg-white/30 backdrop-blur-md border border-white/30 px-6 py-3 rounded-full text-sm font-bold shadow-md transition-colors">
                     <Plus size={18} /><span>Thêm Tuần</span>
                   </button>
                   <button onClick={() => {
                     if (tuans.length === 0) { alert('Vui lòng tạo ít nhất 1 Tuần trước khi thêm Kha sinh!'); return; }
                     setShowAddUserModal(true);
-                  }} className="inline-flex items-center space-x-2 bg-red-800 text-white px-6 py-3 rounded-full text-sm font-bold shadow-md hover:bg-red-900 transition-colors">
+                  }} className="inline-flex items-center space-x-2 bg-red-600/80 text-white hover:bg-red-600 backdrop-blur-md border border-red-500/50 px-6 py-3 rounded-full text-sm font-bold shadow-md transition-colors">
                     <Plus size={18} /><span>Thêm Kha Sinh</span>
                   </button>
                 </div>
               </div>
             ) : (
-              <button onClick={() => setShowAdminLogin(true)} className="mt-8 inline-flex items-center space-x-2 text-slate-600 hover:text-red-800 transition-colors text-sm font-bold bg-white/50 backdrop-blur-sm px-6 py-3 rounded-full shadow-sm border border-white/60">
+              <button onClick={() => setShowAdminLogin(true)} className="mt-8 inline-flex items-center space-x-2 text-white hover:bg-white/30 transition-colors text-sm font-bold bg-white/20 backdrop-blur-md px-6 py-3 rounded-full shadow-sm border border-white/30">
                 <Lock size={16} /><span>Đăng nhập Huynh Trưởng</span>
               </button>
             )}
@@ -550,31 +553,30 @@ export default function App() {
           {/* Ô TÌM KIẾM & DANH SÁCH */}
           <div className="w-full mt-8">
             <div className="relative mb-6">
-              <Search className="absolute left-5 top-4 h-6 w-6 text-slate-600" />
-              <input type="text" placeholder="Tìm Kha sinh, Tuần..." className="w-full pl-14 pr-6 py-4 bg-white/40 backdrop-blur-xl border border-white/50 rounded-3xl focus:ring-4 focus:ring-red-800/30 outline-none shadow-xl text-lg font-medium text-slate-900 placeholder:text-slate-700" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+              <Search className="absolute left-5 top-4 h-6 w-6 text-slate-200" />
+              <input type="text" placeholder="Tìm Kha sinh, Tuần..." className="w-full pl-14 pr-6 py-4 bg-black/20 backdrop-blur-md border border-white/20 rounded-3xl focus:ring-2 focus:ring-white/50 outline-none shadow-xl text-lg font-medium text-white placeholder:text-slate-300" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
             </div>
 
             {tuans.length === 0 ? (
-              <div className="text-center py-12 text-slate-800 font-bold bg-white/40 backdrop-blur-xl rounded-3xl border border-white/50 shadow-xl">Chưa có Tuần nào được tạo.</div>
+              <div className="text-center py-12 text-white/80 font-bold bg-black/20 backdrop-blur-md rounded-3xl border border-white/20 shadow-xl">Chưa có Tuần nào được tạo.</div>
             ) : (
               tuans.map(tuan => {
                 const tuanUsers = filteredUsers.filter(u => u.tuanId === tuan.id);
-                // Ẩn Tuần nếu đang tìm kiếm mà Tuần đó ko có ai khớp
                 if (searchQuery && tuanUsers.length === 0 && !tuan.name.toLowerCase().includes(searchQuery.toLowerCase())) return null;
 
                 return (
-                  <div key={tuan.id} className="mb-8 bg-white/30 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/50">
-                    <div className="flex items-center justify-between mb-4 px-2 border-b border-slate-800/10 pb-4">
+                  <div key={tuan.id} className="mb-8 bg-white/10 backdrop-blur-md rounded-3xl p-6 shadow-xl border border-white/20">
+                    <div className="flex items-center justify-between mb-4 px-2 border-b border-white/20 pb-4">
                       <div className="flex items-center space-x-3">
-                        {tuan.logo && <img src={tuan.logo} alt={tuan.name} className="w-10 h-10 rounded-full border-2 border-white shadow-sm object-cover bg-white" />}
-                        <h3 className="text-lg font-black text-slate-900 drop-shadow-sm uppercase tracking-widest">{tuan.name}</h3>
+                        {tuan.logo && <img src={tuan.logo} alt={tuan.name} className="w-10 h-10 rounded-full border-2 border-white/50 shadow-sm object-cover bg-white" />}
+                        <h3 className="text-lg font-black text-white drop-shadow-md uppercase tracking-widest">{tuan.name}</h3>
                       </div>
                       {isAdmin && (
                         <div className="flex items-center space-x-2">
-                          <button onClick={() => setEditingTuan(tuan)} className="p-2 bg-white/50 text-slate-700 hover:bg-blue-500 hover:text-white rounded-xl transition-colors shadow-sm" title="Sửa Tuần">
+                          <button onClick={() => setEditingTuan(tuan)} className="p-2 bg-white/20 text-white hover:bg-white/40 rounded-xl transition-colors shadow-sm" title="Sửa Tuần">
                             <Edit3 size={16} />
                           </button>
-                          <button onClick={() => handleDeleteTuan(tuan.id, tuan.name)} className="p-2 bg-white/50 text-slate-700 hover:bg-red-500 hover:text-white rounded-xl transition-colors shadow-sm" title="Xóa Tuần">
+                          <button onClick={() => handleDeleteTuan(tuan.id, tuan.name)} className="p-2 bg-white/20 text-white hover:bg-red-500 rounded-xl transition-colors shadow-sm" title="Xóa Tuần">
                             <Trash2 size={16} />
                           </button>
                         </div>
@@ -582,28 +584,28 @@ export default function App() {
                     </div>
 
                     {tuanUsers.length === 0 ? (
-                      <div className="px-4 py-6 text-sm text-slate-700 italic bg-white/40 rounded-2xl border border-dashed border-white/60 text-center">Chưa có thành viên</div>
+                      <div className="px-4 py-6 text-sm text-slate-200 italic bg-black/20 rounded-2xl border border-dashed border-white/20 text-center">Chưa có thành viên</div>
                     ) : (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         {tuanUsers.map(user => {
                           const userProg = progressData[user.id] || { info: { currentRank: user.currentRank } };
                           return (
-                            <button key={user.id} onClick={() => handleSelectUser(user)} className="flex items-center p-3 hover:bg-white/80 rounded-2xl transition-all border border-white/50 hover:border-white group text-left shadow-md bg-white/50 backdrop-blur-sm">
-                              <div className="w-14 h-14 bg-white/80 rounded-full overflow-hidden border-2 border-white shadow-sm shrink-0 flex items-center justify-center">
+                            <button key={user.id} onClick={() => handleSelectUser(user)} className="flex items-center p-3 hover:bg-white/20 rounded-2xl transition-all border border-white/20 group text-left shadow-md bg-white/10 backdrop-blur-md text-white">
+                              <div className="w-14 h-14 bg-white/20 rounded-full overflow-hidden border border-white/40 shadow-sm shrink-0 flex items-center justify-center">
                                 {user.avatar ? (
-                                  <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+                                  <img src={user.avatar} alt={user.name} className="w-full h-full object-cover bg-white" />
                                 ) : (
-                                  <div className="text-slate-500 group-hover:text-red-800 transition-colors">
+                                  <div className="text-white">
                                     <User size={24} />
                                   </div>
                                 )}
                               </div>
                               <div className="ml-4 flex-1">
-                                <p className="font-bold text-slate-900 text-lg group-hover:text-red-800 transition-colors drop-shadow-sm">{user.name}</p>
-                                <p className="text-sm font-medium text-slate-700 mt-0.5">{userProg.info?.currentRank || user.currentRank}</p>
+                                <p className="font-bold text-white text-lg group-hover:text-red-200 transition-colors drop-shadow-md">{user.name}</p>
+                                <p className="text-sm font-medium text-slate-200 mt-0.5">{userProg.info?.currentRank || user.currentRank}</p>
                               </div>
-                              <div className="w-8 h-8 bg-white/60 rounded-full flex items-center justify-center group-hover:bg-red-100 transition-colors shadow-sm">
-                                <ChevronRight size={18} className="text-slate-700 group-hover:text-red-800" />
+                              <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center group-hover:bg-white/40 transition-colors shadow-sm">
+                                <ChevronRight size={18} className="text-white" />
                               </div>
                             </button>
                           )
@@ -636,17 +638,17 @@ export default function App() {
                     <div className="text-center">
                       <Upload size={32} className="mx-auto text-red-500 mb-2 group-hover:scale-110 transition-transform" />
                       <p className="font-bold text-red-800">Bấm vào đây để tải ảnh nền mới lên (Tối đa 10 ảnh)</p>
-                      <p className="text-xs text-red-600 mt-1">Ảnh sẽ tự chạy slide phía sau màn hình chính. Đã được tự động nén để tối ưu.</p>
+                      <p className="text-xs text-red-600 mt-1">Hỗ trợ ảnh HD siêu nét. Ảnh tự động nén thông minh để hệ thống luôn mượt mà.</p>
                     </div>
-                    {/* Dùng maxSize = 1024 để đảm bảo dung lượng mười ảnh gộp lại không vượt quá 1MB của Database */}
-                    <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, handleAddSlide, 1024)} />
+                    {/* Sử dụng maxSize = 1920 (Full HD) để ảnh nền không bị bể vỡ */}
+                    <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, handleAddSlide, 1920)} />
                   </label>
                 </div>
 
                 <div>
                   <h4 className="font-bold text-slate-700 mb-3">Các ảnh nền hiện tại ({bgSlides.length}/10 ảnh):</h4>
                   {bgSlides.length === 0 ? (
-                    <p className="text-sm text-slate-500 italic bg-slate-50 p-4 rounded-xl border border-slate-200">Hệ thống đang dùng màu nền mặc định.</p>
+                    <p className="text-sm text-slate-500 italic bg-slate-50 p-4 rounded-xl border border-slate-200">Hệ thống đang dùng màu nền đen xám mặc định.</p>
                   ) : (
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 max-h-96 overflow-y-auto pr-2">
                       {bgSlides.map((img, idx) => (
@@ -673,7 +675,7 @@ export default function App() {
             <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl">
               <h3 className="text-xl font-bold mb-4 text-slate-800">Xác thực Huynh trưởng</h3>
               <form onSubmit={(e) => { e.preventDefault(); if(adminPassword === '123456') { setIsAdmin(true); setShowAdminLogin(false); setAdminPassword(''); } else alert('Sai mật khẩu!'); }}>
-                <input type="password" placeholder="Mật khẩu..." className="w-full px-4 py-3 border border-slate-300 rounded-xl mb-4 focus:ring-2 focus:ring-red-800 outline-none" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} autoFocus />
+                <input type="password" placeholder="Mật khẩu..." className="w-full px-4 py-3 border border-slate-300 rounded-xl mb-4 focus:ring-2 focus:ring-red-800 outline-none text-slate-900" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} autoFocus />
                 <div className="flex space-x-3">
                   <button type="button" onClick={() => setShowAdminLogin(false)} className="flex-1 px-4 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200">Hủy</button>
                   <button type="submit" className="flex-1 px-4 py-3 bg-red-800 text-white rounded-xl font-bold hover:bg-red-900 shadow-md">Vào</button>
@@ -691,7 +693,7 @@ export default function App() {
               <form onSubmit={handleAddTuan} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Tên Tuần</label>
-                  <input type="text" required placeholder="VD: Tuần Sói, Tuần Đại Bàng..." className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-800 outline-none" value={newTuan.name} onChange={e => setNewTuan({...newTuan, name: e.target.value})} />
+                  <input type="text" required placeholder="VD: Tuần Sói, Tuần Đại Bàng..." className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-800 outline-none text-slate-900" value={newTuan.name} onChange={e => setNewTuan({...newTuan, name: e.target.value})} />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Cờ / Logo Tuần</label>
@@ -726,7 +728,7 @@ export default function App() {
               <form onSubmit={handleUpdateTuan} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Tên Tuần</label>
-                  <input type="text" required className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-800 outline-none" value={editingTuan.name} onChange={e => setEditingTuan({...editingTuan, name: e.target.value})} />
+                  <input type="text" required className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-800 outline-none text-slate-900" value={editingTuan.name} onChange={e => setEditingTuan({...editingTuan, name: e.target.value})} />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Cờ / Logo Tuần</label>
@@ -761,17 +763,17 @@ export default function App() {
               <form onSubmit={handleAddUser} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Họ và tên</label>
-                  <input type="text" required className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-800 outline-none" value={newUser.name} onChange={e => setNewUser({...newUser, name: e.target.value})} />
+                  <input type="text" required className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-800 outline-none text-slate-900" value={newUser.name} onChange={e => setNewUser({...newUser, name: e.target.value})} />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Thuộc Tuần</label>
-                  <select className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-800 outline-none" value={newUser.tuanId} onChange={e => setNewUser({...newUser, tuanId: e.target.value})}>
+                  <select className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-800 outline-none text-slate-900" value={newUser.tuanId} onChange={e => setNewUser({...newUser, tuanId: e.target.value})}>
                     {tuans.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Ngày sinh (DD/MM/YYYY)</label>
-                  <input type="text" placeholder="Ví dụ: 15/05/2006" className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-800 outline-none" value={newUser.dob} onChange={e => setNewUser({...newUser, dob: e.target.value})} />
+                  <input type="text" placeholder="Ví dụ: 15/05/2006" className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-800 outline-none text-slate-900" value={newUser.dob} onChange={e => setNewUser({...newUser, dob: e.target.value})} />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Ảnh Đại Diện</label>
@@ -806,7 +808,7 @@ export default function App() {
               <form onSubmit={handleUpdateCover} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Định dạng bìa</label>
-                  <select className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-800 outline-none" value={coverForm.type} onChange={e => setCoverForm({...coverForm, type: e.target.value, url: ''})}>
+                  <select className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-800 outline-none text-slate-900" value={coverForm.type} onChange={e => setCoverForm({...coverForm, type: e.target.value, url: ''})}>
                     <option value="image">Ảnh Bìa tĩnh</option>
                     <option value="video">Video Bìa (Nền động)</option>
                   </select>
@@ -819,17 +821,18 @@ export default function App() {
                       <div className="flex items-center space-x-3">
                         <label className="cursor-pointer bg-slate-100 text-slate-700 px-4 py-2 rounded-xl text-sm font-bold hover:bg-slate-200 border border-slate-300 flex items-center">
                           <Upload size={16} className="mr-2" /> Chọn ảnh
-                          <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, (base64) => setCoverForm({...coverForm, url: base64}), 1200)} />
+                          {/* Cho phép bìa có độ phân giải ngang tới 1600 */}
+                          <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, (base64) => setCoverForm({...coverForm, url: base64}), 1600)} />
                         </label>
                         <span className="text-xs text-slate-500">HD Format</span>
                       </div>
-                      <input type="text" placeholder="Hoặc dán link ảnh (https://...)" className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-800 outline-none text-sm" value={coverForm.url} onChange={e => setCoverForm({...coverForm, url: e.target.value})} />
+                      <input type="text" placeholder="Hoặc dán link ảnh (https://...)" className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-800 outline-none text-sm text-slate-900" value={coverForm.url} onChange={e => setCoverForm({...coverForm, url: e.target.value})} />
                     </div>
                   </div>
                 ) : (
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">Link Video (YouTube hoặc MP4)</label>
-                    <input type="text" required placeholder="VD: https://www.youtube.com/watch?v=..." className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-800 outline-none text-sm" value={coverForm.url} onChange={e => setCoverForm({...coverForm, url: e.target.value})} />
+                    <input type="text" required placeholder="VD: https://www.youtube.com/watch?v=..." className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-800 outline-none text-sm text-slate-900" value={coverForm.url} onChange={e => setCoverForm({...coverForm, url: e.target.value})} />
                     <p className="text-xs text-slate-500 mt-2">Gợi ý: Copy đường dẫn từ Youtube dán vào đây. Hệ thống sẽ tự động phát ngầm làm video nền chuyên nghiệp (Không có tiếng).</p>
                   </div>
                 )}
@@ -1038,11 +1041,11 @@ export default function App() {
               <form onSubmit={handleUpdateUser} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Họ và tên</label>
-                  <input type="text" required className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-800 outline-none" value={editingUser.name} onChange={e => setEditingUser({...editingUser, name: e.target.value})} />
+                  <input type="text" required className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-800 outline-none text-slate-900" value={editingUser.name} onChange={e => setEditingUser({...editingUser, name: e.target.value})} />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Ngày sinh (DD/MM/YYYY)</label>
-                  <input type="text" placeholder="Ví dụ: 15/05/2006" className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-800 outline-none" value={editingUser.dob} onChange={e => setEditingUser({...editingUser, dob: e.target.value})} />
+                  <input type="text" placeholder="Ví dụ: 15/05/2006" className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-800 outline-none text-slate-900" value={editingUser.dob} onChange={e => setEditingUser({...editingUser, dob: e.target.value})} />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Ảnh Đại Diện</label>
@@ -1124,7 +1127,7 @@ export default function App() {
                   <form onSubmit={handleAddLaw} className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-1">Phân loại</label>
-                      <select className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-800 outline-none" value={newLaw.category} onChange={e => setNewLaw({...newLaw, category: e.target.value})}>
+                      <select className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-800 outline-none text-slate-900" value={newLaw.category} onChange={e => setNewLaw({...newLaw, category: e.target.value})}>
                         <option value="Lời Hứa">Lời Hứa</option>
                         <option value="Luật Hướng Đạo">Luật Hướng Đạo</option>
                         <option value="Châm Ngôn">Châm Ngôn</option>
@@ -1133,7 +1136,7 @@ export default function App() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-1">Nội dung</label>
-                      <textarea rows="5" required className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-800 outline-none" value={newLaw.content} onChange={e => setNewLaw({...newLaw, content: e.target.value})}></textarea>
+                      <textarea rows="5" required className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-800 outline-none text-slate-900" value={newLaw.content} onChange={e => setNewLaw({...newLaw, content: e.target.value})}></textarea>
                     </div>
                     <div className="flex space-x-3 pt-4">
                       <button type="button" onClick={() => setShowAddLawModal(false)} className="flex-1 px-4 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200">Hủy</button>
@@ -1460,11 +1463,11 @@ export default function App() {
               <form onSubmit={handleAddDoc} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Tên tài liệu</label>
-                  <input type="text" required className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-800 outline-none" value={newDoc.title} onChange={e => setNewDoc({...newDoc, title: e.target.value})} />
+                  <input type="text" required className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-800 outline-none text-slate-900" value={newDoc.title} onChange={e => setNewDoc({...newDoc, title: e.target.value})} />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Danh mục</label>
-                  <select className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-800 outline-none" value={newDoc.categoryId} onChange={e => setNewDoc({...newDoc, categoryId: e.target.value})}>
+                  <select className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-800 outline-none text-slate-900" value={newDoc.categoryId} onChange={e => setNewDoc({...newDoc, categoryId: e.target.value})}>
                     {docCategories.map(cat => (
                       <option key={cat.id} value={cat.id}>{cat.name}</option>
                     ))}
@@ -1473,7 +1476,7 @@ export default function App() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Mô tả ngắn</label>
-                  <textarea rows="2" className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-800 outline-none" value={newDoc.description} onChange={e => setNewDoc({...newDoc, description: e.target.value})}></textarea>
+                  <textarea rows="2" className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-800 outline-none text-slate-900" value={newDoc.description} onChange={e => setNewDoc({...newDoc, description: e.target.value})}></textarea>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Đính kèm File</label>
@@ -1484,7 +1487,7 @@ export default function App() {
                         <input type="file" className="hidden" onChange={(e) => handleFileUpload(e, (base64) => setNewDoc({...newDoc, link: base64}))} />
                       </label>
                     </div>
-                    <input type="text" placeholder="https://..." className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-800 outline-none text-sm" value={newDoc.link} onChange={e => setNewDoc({...newDoc, link: e.target.value})} />
+                    <input type="text" placeholder="https://..." className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-800 outline-none text-sm text-slate-900" value={newDoc.link} onChange={e => setNewDoc({...newDoc, link: e.target.value})} />
                   </div>
                 </div>
                 <div className="flex space-x-3 pt-4">
@@ -1503,7 +1506,7 @@ export default function App() {
               <form onSubmit={handleAddCategory} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Tên danh mục</label>
-                  <input type="text" required placeholder="VD: Kỹ năng sinh tồn..." className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-800 outline-none" value={newCategory.name} onChange={e => setNewCategory({...newCategory, name: e.target.value})} />
+                  <input type="text" required placeholder="VD: Kỹ năng sinh tồn..." className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-800 outline-none text-slate-900" value={newCategory.name} onChange={e => setNewCategory({...newCategory, name: e.target.value})} />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Ảnh đại diện (Avatar)</label>
