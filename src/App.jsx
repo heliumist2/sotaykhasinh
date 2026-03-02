@@ -632,6 +632,51 @@ export default function App() {
             )}
           </div>
         </div>
+
+        {/* MODAL: SỬA ẢNH/VIDEO BÌA */}
+        {showEditCoverModal && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
+            <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl my-8">
+              <h3 className="text-xl font-bold mb-4 text-slate-800">Cập Nhật Ảnh/Video Bìa</h3>
+              <form onSubmit={handleUpdateCover} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Định dạng bìa</label>
+                  <select className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-800 outline-none" value={coverForm.type} onChange={e => setCoverForm({...coverForm, type: e.target.value, url: ''})}>
+                    <option value="image">Ảnh Bìa tĩnh</option>
+                    <option value="video">Video Bìa (Nền động)</option>
+                  </select>
+                </div>
+                
+                {coverForm.type === 'image' ? (
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Tải ảnh lên hoặc dùng link</label>
+                    <div className="flex flex-col space-y-2">
+                      <div className="flex items-center space-x-3">
+                        <label className="cursor-pointer bg-slate-100 text-slate-700 px-4 py-2 rounded-xl text-sm font-bold hover:bg-slate-200 border border-slate-300 flex items-center">
+                          <Upload size={16} className="mr-2" /> Chọn ảnh
+                          <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, (base64) => setCoverForm({...coverForm, url: base64}))} />
+                        </label>
+                        <span className="text-xs text-slate-500">Tối ưu dung lượng</span>
+                      </div>
+                      <input type="text" placeholder="Hoặc dán link ảnh (https://...)" className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-800 outline-none text-sm" value={coverForm.url} onChange={e => setCoverForm({...coverForm, url: e.target.value})} />
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Link Video (YouTube hoặc MP4)</label>
+                    <input type="text" required placeholder="VD: https://www.youtube.com/watch?v=..." className="w-full px-4 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-red-800 outline-none text-sm" value={coverForm.url} onChange={e => setCoverForm({...coverForm, url: e.target.value})} />
+                    <p className="text-xs text-slate-500 mt-2">Gợi ý: Copy đường dẫn từ Youtube dán vào đây. Hệ thống sẽ tự động phát ngầm làm video nền chuyên nghiệp (Không có tiếng).</p>
+                  </div>
+                )}
+                
+                <div className="flex space-x-3 pt-4">
+                  <button type="button" onClick={() => setShowEditCoverModal(false)} className="flex-1 px-4 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200">Hủy</button>
+                  <button type="submit" className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-md">Lưu Thay Đổi</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
