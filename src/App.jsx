@@ -224,8 +224,15 @@ export default function App() {
         canvas.width = width; canvas.height = height;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, width, height);
-        // Tăng chất lượng ảnh lên 0.75 để ảnh nền không bị bể hạt, giữ nét HD
-        callback(canvas.toDataURL('image/jpeg', customMaxSize > 800 ? 0.75 : 0.85));
+        
+        // Kiểm tra loại file để quyết định định dạng xuất ra
+        if (file.type === 'image/png') {
+          // Xuất ra dạng PNG để giữ nền trong suốt
+          callback(canvas.toDataURL('image/png'));
+        } else {
+          // Xuất ra dạng JPEG để nén dung lượng
+          callback(canvas.toDataURL('image/jpeg', customMaxSize > 800 ? 0.75 : 0.85));
+        }
       };
       img.src = event.target.result;
     };
@@ -957,7 +964,7 @@ export default function App() {
                       const rankLogo = currentRankData ? (customLogos[currentRankData.id]?.logo || currentRankData.logo) : null;
                       
                       return rankLogo ? (
-                        <img src={rankLogo} alt={activeRank} className="w-8 h-8 mr-3 object-contain drop-shadow-sm bg-white rounded-full" />
+                        <img src={rankLogo} alt={activeRank} className="w-8 h-8 mr-3 object-cover drop-shadow-sm bg-white rounded-full border border-slate-200" />
                       ) : (
                         <Medal size={24} className="mr-2" /> 
                       );
@@ -1171,8 +1178,8 @@ export default function App() {
                 <div key={rank.id} className={`bg-white rounded-3xl overflow-hidden shadow-sm border ${activeRank === rank.name ? 'border-red-400 ring-2 ring-red-100' : 'border-slate-200'}`}>
                   <div className={`px-6 py-4 flex items-center justify-between ${activeRank === rank.name ? 'bg-red-50' : 'bg-slate-50'}`}>
                     <div className="flex items-center space-x-3">
-                      <div className="relative group shrink-0 flex items-center justify-center w-12 h-12 rounded-full overflow-hidden bg-white shadow-sm border-2 border-slate-100">
-                        {rankLogo && <img src={rankLogo} alt={rank.name} className="w-10 h-10 object-contain drop-shadow-sm" />}
+                      <div className="relative group shrink-0 flex items-center justify-center w-14 h-14 rounded-full overflow-hidden bg-white shadow-sm border-2 border-slate-100">
+                        {rankLogo && <img src={rankLogo} alt={rank.name} className="w-full h-full object-cover" />}
                         {isAdmin && (
                           <label className="absolute inset-0 bg-black/60 hidden group-hover:flex items-center justify-center cursor-pointer text-white transition-all backdrop-blur-sm" title="Đổi Logo Đẳng Thứ">
                             <Upload size={16} />
