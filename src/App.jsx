@@ -1228,8 +1228,8 @@ export default function App() {
                   <div className={`p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${hasEarnedMainBadge ? `bg-${cat.color}-50` : 'bg-slate-50'}`}>
                     <div className="flex items-center space-x-4">
                       <div className="relative group shrink-0">
-                        <div className={`w-14 h-14 rounded-full bg-white flex items-center justify-center shadow-sm overflow-hidden p-1 border border-${cat.color}-200`}>
-                          <img src={catLogo} alt={cat.name} className="w-full h-full object-contain" />
+                        <div className={`w-14 h-14 rounded-full bg-white flex items-center justify-center shadow-sm overflow-hidden border border-${cat.color}-200`}>
+                          <img src={catLogo} alt={cat.name} className="w-full h-full object-cover" />
                         </div>
                         {isAdmin && (
                           <label className="absolute inset-0 bg-black/60 hidden group-hover:flex items-center justify-center cursor-pointer rounded-full text-white transition-all backdrop-blur-sm" title="Đổi Logo Chuyên Hiệu">
@@ -1271,7 +1271,7 @@ export default function App() {
                                   status === STATUS.IN_PROGRESS ? 'border-amber-400 border-dashed' : 
                                   'border-slate-200 opacity-50 grayscale'}`}
                               >
-                                <img src={skillLogo} alt={skill} className="w-full h-full object-cover p-1" />
+                                <img src={skillLogo} alt={skill} className="w-full h-full object-cover" />
                               </div>
 
                               {isAdmin && (
